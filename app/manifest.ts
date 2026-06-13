@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
     return {
         name: 'Kréta Recap',
-        short_name: 'KrétaRecap',
+        short_name: 'Kréta Recap',
         description: 'Az éved a Krétában',
         start_url: '/',
         display: 'standalone',
