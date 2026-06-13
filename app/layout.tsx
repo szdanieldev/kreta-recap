@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,11 +24,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    // <html
+    //   lang="en"
+    //   className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    // >
+    //   <body className="min-h-full flex flex-col">{children}</body>
+    // </html>
+    <html lang="hu">
+      <body className="bg-stone-100 text-white flex justify-center items-center min-h-screen w-full overflow-x-hidden">
+        <main className="w-full max-w-md min-h-screen flex flex-col relative overflow-x-hidden">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }
