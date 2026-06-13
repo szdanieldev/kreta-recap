@@ -9,17 +9,27 @@ export default function Home() {
           Kíváncsi vagy hogyan teljesítettél idén a suliban? Nézd meg a Kréta
           Recap-et, hogy megtudd!
         </p>
-        <small>A folytatáshoz jelentkezz be a KRÉTA fiókoddal!</small>
-        <a
-          href="/api/auth/login"
-          className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-full"
+        <small className="text-xs text-gray-500">
+          A folytatáshoz jelentkezz be a KRÉTA fiókoddal!
+        </small>
+        <button
+          className="
+            w-full py-4 rounded-full font-black text-base 
+            flex items-center justify-center gap-2 cursor-pointer text-white
+            bg-gradient-to-b from-sky-400 to-sky-500
+            shadow-[0_6px_10px_#FF5C0044]
+            transition-all duration-200 ease-in-out
+            
+            hover:from-sky-500 hover:to-sky-600 hover:scale-[1.01]
+            active:scale-[0.95]
+          "
         >
-          Bejelentkezés
-        </a>
-        <small>
+          <span>Belépés KRÉTA fiókkal</span>
+        </button>
+        <small className="text-xs text-gray-500">
           Semmilyen adatot nem tárolunk, részletek itt:{" "}
-          <a href="/privacy" className="text-blue-500 hover:underline">
-            Adatvédelmi szabályzat
+          <a href="/privacy" className="text-sky-500 hover:underline">
+            Adatvédelmi nyilatkozat
           </a>
         </small>
       </div>
