@@ -6,8 +6,10 @@ export default function Home() {
   const router = useRouter();
 
   function authKreta() {
-    const authUrl = `https://idp.e-kreta.hu/connect/authorize?prompt=login&nonce=wylCrqT4oN6PPgQn2yQB0euKei9nJeZ6_ffJ-VpSKZU&response_type=code&code_challenge_method=S256&scope=openid%20email%20offline_access%20kreta-ellenorzo-webapi.public%20kreta-eugyintezes-webapi.public%20kreta-fileservice-webapi.public%20kreta-mobile-global-webapi.public%20kreta-dkt-webapi.public%20kreta-ier-webapi.public&code_challenge=HByZRRnPGb-Ko_wTI7ibIba1HQ6lor0ws4bcgReuYSQ&redirect_uri=https://mobil.e-kreta.hu/ellenorzo-student/prod/oauthredirect&client_id=kreta-ellenorzo-student-mobile-ios&state=kretarecap_student_mobile&acr_values=institute_code:`;
+    // const authUrl = `https://idp.e-kreta.hu/connect/authorize?prompt=login&nonce=wylCrqT4oN6PPgQn2yQB0euKei9nJeZ6_ffJ-VpSKZU&response_type=code&code_challenge_method=S256&scope=openid%20email%20offline_access%20kreta-ellenorzo-webapi.public%20kreta-eugyintezes-webapi.public%20kreta-fileservice-webapi.public%20kreta-mobile-global-webapi.public%20kreta-dkt-webapi.public%20kreta-ier-webapi.public&code_challenge=HByZRRnPGb-Ko_wTI7ibIba1HQ6lor0ws4bcgReuYSQ&redirect_uri=https://mobil.e-kreta.hu/ellenorzo-student/prod/oauthredirect&client_id=kreta-ellenorzo-student-mobile-ios&state=kretarecap_student_mobile&acr_values=institute_code:`;
+    const authUrl = `https://idp.e-kreta.hu/connect/authorize?client_id=kreta-ellenorzo-student-mobile-ios&response_type=code&scope=openid%20email%20offline_access%20kreta-ellenorzo-webapi.public&redirect_uri=http://kreta-recap.vercel.app/api/auth/callback&code_challenge=testhash&code_challenge_method=S256&acr_values=institute_code:`;
     router.push(authUrl);
+    // TODO: change testhash
   }
 
   return (
