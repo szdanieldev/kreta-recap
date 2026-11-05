@@ -72,6 +72,47 @@ Opcionális, kizárólag function-oldali konfiguráció: `KRETA_CLIENT_ID`, `KRE
 
 Nem hivatalos KRÉTA-alkalmazás. A külső API változása befolyásolhatja a működését.
 
+## Teljes alkalmazás ingyenes hostingon: Render
+
+A projekt egyetlen ingyenes Render **Web Service**-ként futtatható, a frontend és az API ugyanabban a Node.js-folyamatban. Nincs külön backendtelepítés, adatbázis vagy új `server/` mappa.
+
+1. Commitold és pushold a változásokat, különösen a `render.yaml` és `scripts/` fájlokat.
+2. Render Dashboard → **New → Blueprint**, majd válaszd a repót. A gyökérben lévő `render.yaml` alapján egy `plan: free`, Frankfurt régiós szolgáltatás jön létre.
+3. Ellenőrizd, hogy **Free** szerepel a csomagnál, majd indítsd a telepítést. A frontend is az új `onrender.com` címen lesz.
+4. A Logs nézetben az induló tesztnél `KRÉTA connectivity OK` várható. Ez bejelentkezési adatok nélkül ellenőrzi a KRÉTA elérhetőségét.
+5. Csak sikeres kapcsolatteszt után próbáld ki a valódi belépést az új címen.
+
+Kézi **New → Web Service** beállításokkal is telepíthető:
+
+| Beállítás | Érték |
+| --- | --- |
+| Runtime | Node |
+| Region | Frankfurt |
+| Instance Type | Free |
+| Build Command | `npm ci --include=dev && npm run build` |
+| Start Command | `npm start` |
+| Health Check Path | `/healthz` |
+| NODE_VERSION | `22` |
+| KRETA_CHECK_ON_START | `1` |
+
+A Render `PORT` és `RENDER_EXTERNAL_URL` változóit az app automatikusan használja. Saját domain esetén a `PUBLIC_ORIGIN` legyen a saját teljes HTTPS eredet (például `https://recap.example.hu`); enélkül az alap Render-domaint engedi az API origin-ellenőrzése.
+
+A Free példány 15 perc inaktivitás után elalszik, és a következő látogatáskor újraindul, ami körülbelül egy percet is igénybe vehet. A havi ingyenes keret és a külső API-forgalom korlátai érvényesek: https://render.com/docs/free . Az ingyenes csomag hobbiprojektre alkalmas, nem jelent korlátlan vagy garantált rendelkezésre állást.
+
+**A KRÉTA elérhetősége Renderből még nem igazolt.** A Vercelen látott kapcsolódási hiba egy másik szolgáltatónál is előfordulhat. A host kiválasztása önmagában nem bizonyítja, hogy a KRÉTA fogadja az onnan indított kapcsolatokat. Az indulási teszt a folyamatot nem állítja le sikertelenségnél: a demó elérhető marad, a hiba részletei a logban látszanak.
+
+Helyi éles próba:
+
+```bash
+npm run build
+npm start
+# http://localhost:3000
+npm run check:hosting
+npm run check:connection
+```
+
+A `check:hosting` ideiglenes loopback-porton teszteli az éles kiszolgálót és leállítja maga után. A kapcsolatellenőrzés csak a KRÉTA nyilvános OpenID-konfigurációját kéri le, jelszót nem küld.
+
 ## Vercel telepítés
 
 A teljes projekt egyetlen Vercel-alkalmazásként telepíthető:

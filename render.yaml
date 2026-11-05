@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: kreta-recap
+    runtime: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22
+      - key: KRETA_CHECK_ON_START
+        value: "1"

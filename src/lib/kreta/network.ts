@@ -29,7 +29,7 @@ export async function connectivityDetails(url: string | URL, error: unknown) {
     ]);
   } catch (dnsError) { addresses = errorDetails(dnsError); }
   finally { if (timer) clearTimeout(timer); }
-  return { hostname, addresses, errorCode: networkCode(error), region: process.env.VERCEL_REGION ?? 'local', node: process.version, transport: 'IPv4 / TLS certificate verification enabled', connectTimeoutMs: 15000, error: errorDetails(error) };
+  return { hostname, addresses, errorCode: networkCode(error), region: process.env.VERCEL_REGION ?? (process.env.RENDER ? 'render' : 'local'), node: process.version, transport: 'IPv4 / TLS certificate verification enabled', connectTimeoutMs: 15000, error: errorDetails(error) };
 }
 export async function kretaFetch(url: string | URL, init: RequestInit = {}): Promise<Response> {
   const method = (init.method ?? 'GET').toUpperCase();
@@ -40,7 +40,7 @@ export async function kretaFetch(url: string | URL, init: RequestInit = {}): Pro
       return await transport.fetch(url, options);
     } catch (error) {
       const code = networkCode(error);
-      trace('KRÉTA hálózati kapcsolódási hiba', { hostname: new URL(url).hostname, method, attempt, errorCode: code, region: process.env.VERCEL_REGION ?? 'local', transport: 'IPv4' });
+      trace('KRÉTA hálózati kapcsolódási hiba', { hostname: new URL(url).hostname, method, attempt, errorCode: code, region: process.env.VERCEL_REGION ?? (process.env.RENDER ? 'render' : 'local'), transport: 'IPv4' });
       if (attempt >= attempts || !code || !retryable.has(code) || init.signal?.aborted) throw error;
       trace('KRÉTA GET kapcsolat újrapróbálása', { hostname: new URL(url).hostname, nextAttempt: attempt + 1 });
     }

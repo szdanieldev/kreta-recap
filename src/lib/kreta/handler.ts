@@ -28,7 +28,7 @@ export function createRecapHandler(services = { login, collectRecap }) {
         return Response.json({ ...payload, debug: redact(debugContext.getStore()?.entries ?? []) }, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...extraHeaders } });
       }
       try {
-        trace('Recap API kérés fogadva', { method: request.method, path: new URL(request.url).pathname, region: process.env.VERCEL_REGION ?? 'local', node: process.version });
+        trace('Recap API kérés fogadva', { method: request.method, path: new URL(request.url).pathname, region: process.env.VERCEL_REGION ?? (process.env.RENDER ? 'render' : 'local'), node: process.version });
         if (request.method !== 'POST') return respond(405, { error: 'Csak POST kérés engedélyezett.' }, { Allow: 'POST' });
         const origin = request.headers.get('origin');
         if ((origin && origin !== new URL(request.url).origin) || request.headers.get('sec-fetch-site') === 'cross-site') return respond(403, { error: 'Nem engedélyezett origin.' });

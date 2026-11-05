@@ -583,7 +583,7 @@ function App() {
         json = JSON.parse(text);
       } catch {
         throw new Error(
-          `Az API nem JSON-t adott (HTTP ${response.status}). Ellenőrizd a Vercel Function naplóját.`,
+          `Az API nem JSON-t adott (HTTP ${response.status}). Ellenőrizd az alkalmazás API-naplóját.`,
         );
       }
       if (Array.isArray(json.debug))
