@@ -1,3 +1,4 @@
+import { transport } from './network.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validInstitute, login } from './api.ts';
@@ -8,11 +9,11 @@ test('institution validation blocks host/path injection', () => {
 test('PKCE login preserves cookies and CSRF, verifies state, then exchanges code', async () => {
   const { createHash } = await import('node:crypto');
   const { debugContext } = await import('./debug.ts');
-  const original = globalThis.fetch;
+  const original = transport.fetch;
   let authorize: URL;
   let verifier = '';
   let calls = 0;
-  globalThis.fetch = async (url, init) => {
+  transport.fetch = async (url, init) => {
     calls++;
     const target = new URL(String(url));
     if (calls === 1) {
@@ -51,26 +52,26 @@ test('PKCE login preserves cookies and CSRF, verifies state, then exchanges code
       const log = JSON.stringify(debugContext.getStore()?.entries);
       for (const secret of ['test-password', 'csrf-secret', 'private-cookie', 'private-code', 'private-token', verifier]) assert.ok(!log.includes(secret), `log leaked ${secret}`);
     });
-  } finally { globalThis.fetch = original; }
+  } finally { transport.fetch = original; }
 });
 
 test('PKCE rejects an unexpected state before exchanging the code', async () => {
-  const original = globalThis.fetch;
+  const original = transport.fetch;
   let calls = 0;
-  globalThis.fetch = async () => {
+  transport.fetch = async () => {
     calls++;
     if (calls === 1) return new Response('<form><input name="Password"><input name="__RequestVerificationToken" value="csrf"></form>');
     return new Response('', { status: 302, headers: { location: 'https://mobil.e-kreta.hu/ellenorzo-student/prod/oauthredirect?code=code&state=wrong' } });
   };
   try { await assert.rejects(() => login('school', 'Student', 'password'), /state eltérés/); assert.equal(calls, 2); }
-  finally { globalThis.fetch = original; }
+  finally { transport.fetch = original; }
 });
 
 test('debug preserves upstream error details and redacts credentials', async () => {
   const { debugContext } = await import('./debug.ts');
   const { upstream, ApiError } = await import('./api.ts');
-  const original = globalThis.fetch;
-  globalThis.fetch = async () => Response.json({ error: 'invalid_grant', error_description: 'invalid_username_or_password', password: 'test-secret', access_token: 'private-token' }, { status: 400 });
+  const original = transport.fetch;
+  transport.fetch = async () => Response.json({ error: 'invalid_grant', error_description: 'invalid_username_or_password', password: 'test-secret', access_token: 'private-token' }, { status: 400 });
   try {
     await debugContext.run({ entries: [], secrets: new Set(['test-secret']) }, async () => {
       await assert.rejects(() => upstream('https://idp.e-kreta.hu/connect/token'), error => {
@@ -85,14 +86,14 @@ test('debug preserves upstream error details and redacts credentials', async () 
       assert.ok(!log.includes('test-secret'));
       assert.ok(!log.includes('private-token'));
     });
-  } finally { globalThis.fetch = original; }
+  } finally { transport.fetch = original; }
 });
 
 
 test('unauthorized_client is diagnosed as a client error, preserving upstream response', async () => {
   const { upstream, ApiError } = await import('./api.ts');
-  const original = globalThis.fetch;
-  globalThis.fetch = async () => Response.json({ error: 'unauthorized_client' }, { status: 400 });
+  const original = transport.fetch;
+  transport.fetch = async () => Response.json({ error: 'unauthorized_client' }, { status: 400 });
   try {
     await assert.rejects(() => upstream('https://idp.e-kreta.hu/connect/token'), error => {
       assert.ok(error instanceof ApiError);
@@ -101,5 +102,5 @@ test('unauthorized_client is diagnosed as a client error, preserving upstream re
       assert.match(JSON.stringify(error.details), /unauthorized_client/);
       return true;
     });
-  } finally { globalThis.fetch = original; }
+  } finally { transport.fetch = original; }
 });

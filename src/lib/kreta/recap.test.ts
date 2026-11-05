@@ -1,3 +1,4 @@
+import { transport } from './network.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { schoolPeriod, windows, deduplicate, collectRecap } from './recap.ts';
@@ -10,8 +11,8 @@ test('Budapest school year rolls at September, and windows cover each day once w
   assert.deepEqual(deduplicate([{ Uid: '1' }, { Uid: '1' }]), [{ Uid: '1' }]);
 });
 test('collects date windows, deduplicates API items and reports missing data without inventing zeros', async () => {
-  const original = globalThis.fetch;
-  globalThis.fetch = async input => {
+  const original = transport.fetch;
+  transport.fetch = async input => {
     const url = new URL(String(input));
     if (url.pathname.endsWith('TanuloAdatlap')) return Response.json({ Nev: 'Teszt Diák' });
     if (url.pathname.endsWith('HaziFeladatok')) return Response.json({ error: 'unavailable' }, { status: 503 });
@@ -24,5 +25,5 @@ test('collects date windows, deduplicates API items and reports missing data wit
     assert.deepEqual(result.grades, [{ Uid: 'one' }]);
     assert.deepEqual(result.coverage, { grades: 'complete', homeworks: 'unavailable' });
     assert.equal((result.errors as unknown[]).length, 1);
-  } finally { globalThis.fetch = original; }
+  } finally { transport.fetch = original; }
 });

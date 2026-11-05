@@ -1,4 +1,5 @@
-import { debugContext, trace, registerSecret, errorDetails } from './debug.js';
+import { kretaFetch, connectivityDetails, networkMessage } from './network.js';
+import { debugContext, trace, registerSecret } from './debug.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { load } from 'cheerio';
 import { CookieJar } from 'tough-cookie';
@@ -16,8 +17,8 @@ export async function upstream(url: string, init: RequestInit = {}): Promise<unk
   const body = init.body instanceof URLSearchParams ? Object.fromEntries(init.body) : init.body;
   trace('KRÉTA kérés indítása', { url, method: init.method ?? 'GET', headers, body });
   let response: Response;
-  try { response = await fetch(url, { ...init, redirect: 'error', signal: AbortSignal.any([AbortSignal.timeout(20000), ...(debugContext.getStore()?.signal ? [debugContext.getStore()!.signal!] : [])]) }); }
-  catch (error) { const details = { url, durationMs: Date.now() - started, error: errorDetails(error) }; trace('KRÉTA hálózati hiba', details); throw new ApiError(502, 'A KRÉTA szervere nem érhető el vagy időtúllépés történt. Próbáld újra.', details); }
+  try { response = await kretaFetch(url, { ...init, redirect: 'error', signal: AbortSignal.any([AbortSignal.timeout(45000), ...(debugContext.getStore()?.signal ? [debugContext.getStore()!.signal!] : [])]) }); }
+  catch (error) { const details = { url, durationMs: Date.now() - started, network: await connectivityDetails(url, error) }; trace('KRÉTA hálózati hiba', details); throw new ApiError(502, networkMessage(error, 'A KRÉTA szervere nem érhető el vagy időtúllépés történt. Próbáld újra.'), details); }
   const text = await response.text();
   let data: unknown;
   try { data = JSON.parse(text); } catch { data = text; }
@@ -63,10 +64,10 @@ export async function login(institute: string, username: string, password: strin
     let response: Response;
     let html: string;
     try {
-      response = await fetch(target, { method: body ? 'POST' : 'GET', body, headers, redirect: 'manual', signal: AbortSignal.any([AbortSignal.timeout(20000), ...(debugContext.getStore()?.signal ? [debugContext.getStore()!.signal!] : [])]) });
+      response = await kretaFetch(target, { method: body ? 'POST' : 'GET', body, headers, redirect: 'manual', signal: AbortSignal.any([AbortSignal.timeout(45000), ...(debugContext.getStore()?.signal ? [debugContext.getStore()!.signal!] : [])]) });
       html = await response.text();
     } catch (error) {
-      throw new ApiError(502, 'KRÉTA IDP hálózati hiba.', { url: target.href, durationMs: Date.now() - started, error: errorDetails(error) });
+      throw new ApiError(502, networkMessage(error, 'KRÉTA IDP hálózati hiba.'), { url: target.href, durationMs: Date.now() - started, network: await connectivityDetails(target, error) });
     }
     for (const cookie of response.headers.getSetCookie()) await jar.setCookie(cookie, target.href);
     const location = response.headers.get('location');

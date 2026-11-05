@@ -102,3 +102,11 @@ Vercel dokumentáció: https://vercel.com/docs/functions/runtimes/node-js
 A Vercel által lefordított Node.js API-modulok relatív importjai `.js` végződést használnak, a TypeScript-forrásokban is. A `.ts` végződés éles JavaScriptből `ERR_MODULE_NOT_FOUND` hibát okozhat.
 
 Az `npm run check:api` külön `NodeNext` beállítással lefordítja a teljes API-modulgráfot a figyelmen kívül hagyott `.api-build` mappába, majd sima Node.js alatt, loader és bundler nélkül betölti a belépési pontot és meghívja a handler validációját. Ez az ellenőrzés az `npm run build` része is. A `.api-build` csak ellenőrzési kimenet; Vercelen továbbra is az `api/recap.ts` az éles function belépési pontja.
+
+### Vercel → KRÉTA kapcsolódási időtúllépés
+
+A function régiója `fra1` (Frankfurt) a `vercel.json` fájlban. A KRÉTA-kérések explicit IPv4-es Undici-kapcsolatot használnak, 15 másodperces kapcsolódási és 45 másodperces teljes kérésidőkorláttal. Átmeneti hálózati hibánál csak a GET-kérés próbálható újra, legfeljebb egyszer; a jelszót beküldő POST és a tokenváltás nem ismétlődik automatikusan. A TLS-tanúsítvány ellenőrzése és az eredeti hostnév megmarad, nincs hardcoded IP.
+
+Hálózati hiba esetén a debug tartalmazza a Vercel régióját, a Node-verziót, a feloldott címeket és az alacsony szintű hibakódot is. A `ConnectTimeoutError` HTTP-válasz előtti kapcsolódási hibát jelent; ebből nem állapítható meg hibás jelszó vagy biztos IP-blokkolás. A frankfurti régió és az explicit IPv4 javíthat hálózati útvonal- vagy címcsaládproblémán, de egy szolgáltatói oldali elérési korlátozást nem old fel.
+
+A helyi, bejelentkezés nélküli IPv4-kérés 200-as választ adott a KRÉTA nyilvános OpenID-konfigurációjára; a Vercelről való elérhetőség új telepítés után igazolható. A debug első API-eseményében éles környezetben `region: fra1` várható.

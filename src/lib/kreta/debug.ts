@@ -22,6 +22,6 @@ export function trace(step: string, details?: unknown) {
 }
 export function errorDetails(error: unknown): unknown {
   if (!(error instanceof Error)) return redact(error);
-  return redact({ name: error.name, message: error.message, stack: error.stack, cause: error.cause ? errorDetails(error.cause) : undefined,
+  return redact({ name: error.name, message: error.message, stack: error.stack, ...Object.fromEntries(['code', 'errno', 'syscall', 'address', 'port'].filter(key => key in error).map(key => [key === 'code' ? 'errorCode' : key, (error as unknown as Record<string, unknown>)[key]])), cause: error.cause ? errorDetails(error.cause) : undefined,
     ...('details' in error ? { details: error.details } : {}) });
 }
