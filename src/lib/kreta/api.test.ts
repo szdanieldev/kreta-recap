@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHmac } from 'node:crypto';
-import { policy, validInstitute, login } from './api.ts';
+import { validInstitute, login } from './api.ts';
 test('institution validation blocks host/path injection', () => {
   for (const input of ['support-farkas', 'klik123', 'a']) assert.equal(validInstitute(input), true);
   for (const input of ['evil.com', 'a/b', 'a@evil.com', '-foo', '', null, 'a'.repeat(64)]) assert.equal(validInstitute(input), false);

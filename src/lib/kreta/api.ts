@@ -1,13 +1,10 @@
-import { trace, registerSecret, errorDetails } from './debug.ts';
-import { createHmac, createHash, randomBytes } from 'node:crypto';
+import { debugContext, trace, registerSecret, errorDetails } from './debug.ts';
+import { createHash, randomBytes } from 'node:crypto';
 import { load } from 'cheerio';
 import { CookieJar } from 'tough-cookie';
 export const clientId = () => process.env.KRETA_CLIENT_ID || 'kreta-ellenorzo-student-mobile-ios';
 export const userAgent = () => process.env.KRETA_USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 export const validInstitute = (value: unknown): value is string => typeof value === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(value);
-export function policy(institute: string, nonce: string, username: string) {
-  return createHmac('sha512', process.env.KRETA_HMAC_KEY || 'baSsxOwlU1jM').update(institute.toUpperCase() + nonce + username.toUpperCase()).digest('base64');
-}
 export class ApiError extends Error {
   constructor(public status: number, message: string, public details?: unknown) { super(message); this.name = 'ApiError'; }
 }
@@ -19,7 +16,7 @@ export async function upstream(url: string, init: RequestInit = {}): Promise<unk
   const body = init.body instanceof URLSearchParams ? Object.fromEntries(init.body) : init.body;
   trace('KRÉTA kérés indítása', { url, method: init.method ?? 'GET', headers, body });
   let response: Response;
-  try { response = await fetch(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(20000) }); }
+  try { response = await fetch(url, { ...init, redirect: 'error', signal: AbortSignal.any([AbortSignal.timeout(20000), ...(debugContext.getStore()?.signal ? [debugContext.getStore()!.signal!] : [])]) }); }
   catch (error) { const details = { url, durationMs: Date.now() - started, error: errorDetails(error) }; trace('KRÉTA hálózati hiba', details); throw new ApiError(502, 'A KRÉTA szervere nem érhető el vagy időtúllépés történt. Próbáld újra.', details); }
   const text = await response.text();
   let data: unknown;
@@ -66,7 +63,7 @@ export async function login(institute: string, username: string, password: strin
     let response: Response;
     let html: string;
     try {
-      response = await fetch(target, { method: body ? 'POST' : 'GET', body, headers, redirect: 'manual', signal: AbortSignal.timeout(20000) });
+      response = await fetch(target, { method: body ? 'POST' : 'GET', body, headers, redirect: 'manual', signal: AbortSignal.any([AbortSignal.timeout(20000), ...(debugContext.getStore()?.signal ? [debugContext.getStore()!.signal!] : [])]) });
       html = await response.text();
     } catch (error) {
       throw new ApiError(502, 'KRÉTA IDP hálózati hiba.', { url: target.href, durationMs: Date.now() - started, error: errorDetails(error) });

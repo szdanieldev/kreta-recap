@@ -4,22 +4,22 @@ Mobilra tervezett, kilenc oldalas, animált tanévi összefoglaló React + TypeS
 
 ## Indítás
 
-Node.js 22+.
+Node.js 22 (a Vercel futtatókörnyezetével egyezően).
 
 ```bash
 npm install
 npm run dev
 ```
 
-http://localhost:5173 — a Vite a `/api` kéréseket a helyi Express szervernek adja át (127.0.0.1:3001).
+http://localhost:5173 — egyetlen Vite-folyamat szolgálja ki a felületet és fejlesztés közben ugyanazt az API-handlert, amely Vercelen functionként fut. Nincs külön szerver, második port vagy proxybeállítás.
 
 ```bash
 npm test
 npm run build
-npm start
+npm run preview
 ```
 
-A buildet az `npm start` a http://127.0.0.1:3001 címen szolgálja ki. A szerver loopback címre köt; ez továbbra is helyi alkalmazás. A mobilméretű felület asztali böngészőből is használható.
+Az `npm run preview` csak a statikus frontend buildjét mutatja (a demó használható). Teljes helyi belépéshez `npm run dev`, Vercel-környezethez `vercel dev` használható. A mobilméretű felület asztali böngészőből is használható.
 
 ## Használat
 
@@ -42,7 +42,7 @@ Az aktuális tanév szeptember 1-től a lekérés napjáig tartó része, Europe
 
 A félévi és év végi jegyek, magatartás, szorgalom és nem számszerű értékelések kimaradnak. Az elemeket Uid alapján deduplikáljuk; hiányzó dátumú és tanéven kívüli elemek nem kerülnek az összesítésbe. Az értékelési módok a szolgáltató szöveges mezőiből kerülnek felismerésre, így az ismeretlen módokat nem soroljuk találomra dolgozatnak.
 
-A `/api/recap` 21 napos, egymást nem átfedő ablakokban kéri a jegyeket és házikat, legfeljebb 3 egyidejű kéréssel. Részleges adatvesztésnél jelzi a hiányokat. Teljesen sikertelen jegylekérésből nem készít összefoglalót; elérhetetlen házifeladat-adatoknál szám helyett gondolatjel jelenik meg.
+A `POST /api/recap` a megadott belépési adatokkal hitelesít, majd ugyanabban a kérésben 21 napos, egymást nem átfedő ablakokban kéri a jegyeket és házikat, legfeljebb 3 egyidejű kéréssel. Részleges adatvesztésnél jelzi a hiányokat. Teljesen sikertelen jegylekérésből nem készít összefoglalót; elérhetetlen házifeladat-adatoknál szám helyett gondolatjel jelenik meg.
 
 ## Megosztás
 
@@ -54,11 +54,11 @@ A kép nem tartalmaz nevet, iskolát, tanárnevet vagy belépési adatokat. A de
 
 A működő authorization-code + PKCE S256 folyamat megmaradt: véletlen verifier/challenge és state, IDP-sütik, űrlapból olvasott CSRF-token, belépés, kézzel ellenőrzött átirányítások, majd authorization code tokenre váltása. Alapértelmezett kliens: `kreta-ellenorzo-student-mobile-ios`.
 
-A jelszót nem tároljuk. A hozzáférési token a szerver memóriájában marad, a böngésző HttpOnly/SameSite=Strict munkamenetsütit kap. A szerver újraindítása vagy tokenlejárat után új belépés kell. Nincs adatbázis vagy localStorage.
+A jelszót nem tároljuk. A KRÉTA-hozzáférési token csak az aktuális function-hívás idejére létezik; nem kerül a böngészőbe, sütibe vagy több kérés között megosztott memóriába. A böngésző csak a lekért adatokat kapja, az összefoglaló bezárásakor ezek az alkalmazás állapotából törlődnek. Új adatlekéréshez új belépés kell. Nincs saját munkamenetsüti, adatbázis vagy localStorage.
 
 A **Fejlesztői napló** lenyitható: tartalmazza a részletes API-lépéseket, hibákat, nyers adatokat és a számítás eredményét. A belépési hibák részletei a belépőpanelen is megnyithatók. A titkos hitelesítési értékek kitakarva maradnak; a debugnapló a tanulói adatokat viszont tartalmazza. A szerver terminálban is naplóz.
 
-Konfiguráció induláskor: `KRETA_CLIENT_ID`, `KRETA_USER_AGENT`. A `/api/data` korábbi debug végpont megmaradt.
+Opcionális, kizárólag function-oldali konfiguráció: `KRETA_CLIENT_ID`, `KRETA_USER_AGENT`. Helyben `.env.local` fájlban, Vercelen az Environment Variables beállításnál adhatók meg; ne kapjanak `VITE_` előtagot. Lásd `.env.example`. A korábbi `/api/login`, `/api/data` és `/api/logout` végpontok megszűntek.
 
 ## Ellenőrzés
 
@@ -71,3 +71,28 @@ Konfiguráció induláskor: `KRETA_CLIENT_ID`, `KRETA_USER_AGENT`. A `/api/data`
 - https://docs.rs/crate/ekreta/0.4.3/source/src/account.rs
 
 Nem hivatalos KRÉTA-alkalmazás. A külső API változása befolyásolhatja a működését.
+
+## Vercel telepítés
+
+A teljes projekt egyetlen Vercel-alkalmazásként telepíthető:
+
+1. Importáld a projekt Git-repóját Vercelen (vagy futtasd a projektben a `vercel` parancsot).
+2. Framework Preset: **Vite**, Build Command: **npm run build**, Output Directory: **dist**, Node.js: **22.x**.
+3. A `vercel.json` ezeket a buildbeállításokat és a function 300 másodperces maximális futásidejét is deklarálja. Az alkalmazás 240 másodperces belső időkorlátot használ. A function számára Fluid Compute-ot használj; a fiókod futásideje ne legyen rövidebbre korlátozva.
+4. Alapesetben nem kell környezeti változó vagy külön szolgáltatás.
+
+Struktúra:
+
+```text
+api/recap.ts              Vercel Node.js Web Request/Response function
+src/lib/kreta/            csak az API-ból importált KRÉTA/PKCE/adatlekérési logika
+src/                     React felület, statisztikák, animációk és PNG-export
+vite.config.ts           a function helyi, egyfolyamatos fejlesztői adaptere
+vercel.json              Vercel build- és function-konfiguráció
+```
+
+A `src/lib/kreta` moduljai nem kerülnek a frontend bundle-be. A böngészőből közvetlenül nem lehet ugyanezt a belépést elvégezni, mert a szükséges IDP-sütik és átirányítások nem olvashatók szabadon cross-origin JavaScriptből. A Node.js API-function az alkalmazás része; nem igényel külön backendtelepítést. Részletes debug módban a Vercel function naplója is tartalmazhat tanulói adatokat, a hitelesítési titkok kitakarva maradnak.
+
+A Vercel-telepítés ebben a munkamenetben nem történt meg. Ellenőrizve: 14 automatizált teszt, TypeScript/Vite build, Node 22 célú function-bundle és a helyi egyfolyamatos API HTTP-tesztjei. A teljes éles belépést telepítés után is ellenőrizni kell.
+
+Vercel dokumentáció: https://vercel.com/docs/functions/runtimes/node-js

@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 export type Trace = { time: string; step: string; details?: unknown };
-export const debugContext = new AsyncLocalStorage<{ entries: Trace[]; secrets: Set<string> }>();
+export const debugContext = new AsyncLocalStorage<{ entries: Trace[]; secrets: Set<string>; signal?: AbortSignal }>();
 const sensitive = /password|token|cookie|hmac|secret|^code$|^code_verifier$|^authorization$|^x-authorizationpolicy-key$/i;
 export function redact(value: unknown): unknown {
   if (typeof value === 'string') {
