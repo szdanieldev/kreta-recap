@@ -96,3 +96,9 @@ A `src/lib/kreta` moduljai nem kerülnek a frontend bundle-be. A böngészőből
 A Vercel-telepítés ebben a munkamenetben nem történt meg. Ellenőrizve: 14 automatizált teszt, TypeScript/Vite build, Node 22 célú function-bundle és a helyi egyfolyamatos API HTTP-tesztjei. A teljes éles belépést telepítés után is ellenőrizni kell.
 
 Vercel dokumentáció: https://vercel.com/docs/functions/runtimes/node-js
+
+### API ESM-importok ellenőrzése
+
+A Vercel által lefordított Node.js API-modulok relatív importjai `.js` végződést használnak, a TypeScript-forrásokban is. A `.ts` végződés éles JavaScriptből `ERR_MODULE_NOT_FOUND` hibát okozhat.
+
+Az `npm run check:api` külön `NodeNext` beállítással lefordítja a teljes API-modulgráfot a figyelmen kívül hagyott `.api-build` mappába, majd sima Node.js alatt, loader és bundler nélkül betölti a belépési pontot és meghívja a handler validációját. Ez az ellenőrzés az `npm run build` része is. A `.api-build` csak ellenőrzési kimenet; Vercelen továbbra is az `api/recap.ts` az éles function belépési pontja.

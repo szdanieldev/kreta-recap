@@ -1,2 +1,2 @@
-import { createRecapHandler } from '../src/lib/kreta/handler.ts';
+import { createRecapHandler } from '../src/lib/kreta/handler.js';
 export default { fetch: createRecapHandler() };

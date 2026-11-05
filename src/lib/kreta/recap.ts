@@ -1,5 +1,5 @@
-import { ApiError, upstream } from './api.ts';
-import { trace } from './debug.ts';
+import { ApiError, upstream } from './api.js';
+import { trace } from './debug.js';
 export function schoolPeriod(now = new Date()) {
   const date = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Budapest', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
   const year = Number(date.slice(0, 4)) - (Number(date.slice(5, 7)) < 9 ? 1 : 0);

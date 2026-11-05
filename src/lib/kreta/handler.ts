@@ -1,6 +1,6 @@
-import { ApiError, login, validInstitute } from './api.ts';
-import { collectRecap } from './recap.ts';
-import { debugContext, trace, redact, errorDetails, registerSecret } from './debug.ts';
+import { ApiError, login, validInstitute } from './api.js';
+import { collectRecap } from './recap.js';
+import { debugContext, trace, redact, errorDetails, registerSecret } from './debug.js';
 const MAX_BODY = 8192;
 async function readJson(request: Request) {
   if (Number(request.headers.get('content-length')) > MAX_BODY) throw new ApiError(413, 'Túl nagy kérés.');

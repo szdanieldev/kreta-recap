@@ -1,4 +1,4 @@
-import { debugContext, trace, registerSecret, errorDetails } from './debug.ts';
+import { debugContext, trace, registerSecret, errorDetails } from './debug.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { load } from 'cheerio';
 import { CookieJar } from 'tough-cookie';

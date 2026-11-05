@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": ".api-build",
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "api/**/*.ts",
+    "src/lib/kreta/**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts"
+  ]
+}
