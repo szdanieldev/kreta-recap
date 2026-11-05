@@ -157,6 +157,160 @@ export function makeStats(data: RecapData) {
     grades.length >= 6
       ? avg(grades.slice(half)) - avg(grades.slice(0, half))
       : null;
+
+  const monthStats = new Map<
+    string,
+    { count: number; sum: number; fives: number }
+  >();
+  for (const g of grades) {
+    const month = gradeDay(g).slice(0, 7);
+    if (!month) continue;
+    const old = monthStats.get(month) ?? { count: 0, sum: 0, fives: 0 };
+    const n = Number(g.SzamErtek);
+    monthStats.set(month, {
+      count: old.count + 1,
+      sum: old.sum + n,
+      fives: old.fives + (n === 5 ? 1 : 0),
+    });
+  }
+  const monthBreakdown = [...monthStats]
+    .map(([month, v]) => ({
+      month,
+      count: v.count,
+      average: v.sum / v.count,
+      fives: v.fives,
+    }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  const bestMonth =
+    [...monthBreakdown].sort(
+      (a, b) => b.average - a.average || b.count - a.count,
+    )[0] ?? null;
+  const worstMonth =
+    [...monthBreakdown].sort(
+      (a, b) => a.average - b.average || b.count - a.count,
+    )[0] ?? null;
+
+  // --- Napi bontás (rekordokhoz) ---
+  const dayStats = new Map<
+    string,
+    { count: number; sum: number; fives: number }
+  >();
+  for (const g of grades) {
+    const d = gradeDay(g);
+    if (!d) continue;
+    const old = dayStats.get(d) ?? { count: 0, sum: 0, fives: 0 };
+    const n = Number(g.SzamErtek);
+    dayStats.set(d, {
+      count: old.count + 1,
+      sum: old.sum + n,
+      fives: old.fives + (n === 5 ? 1 : 0),
+    });
+  }
+  const days = [...dayStats].map(([date, v]) => ({
+    date,
+    count: v.count,
+    average: v.sum / v.count,
+    fives: v.fives,
+  }));
+  const mostGradesDay =
+    [...days].sort((a, b) => b.count - a.count || b.average - a.average)[0] ??
+    null;
+  const bestDay =
+    [...days]
+      .filter((d) => d.count >= 2)
+      .sort((a, b) => b.average - a.average || b.count - a.count)[0] ?? null;
+  const mostFivesDay =
+    [...days]
+      .filter((d) => d.fives > 0)
+      .sort((a, b) => b.fives - a.fives || b.count - a.count)[0] ?? null;
+
+  // --- Hétköznap-eloszlás (Mon=0..Sun=6) ---
+  const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
+  for (const g of grades) {
+    const d = gradeDay(g);
+    if (!d) continue;
+    const date = new Date(d + "T12:00:00Z");
+    const wd = (date.getUTCDay() + 6) % 7;
+    weekdayCounts[wd]++;
+  }
+  const busiestWeekday =
+    weekdayCounts
+      .map((count, day) => ({ day, count }))
+      .sort((a, b) => b.count - a.count || a.day - b.day)[0] ?? null;
+
+  // --- Legtöbb ötös egy tantárgyból ---
+  const maxFives = Math.max(0, ...ranking.map((s) => s.fives));
+  const mostFivesSubject =
+    maxFives > 0
+      ? ([...ranking].sort(
+          (a, b) => b.fives - a.fives || b.count - a.count,
+        )[0] ?? null)
+      : null;
+  const perfectSubjects = ranking.filter(
+    (s) => s.count >= 2 && s.fives === s.count,
+  ).length;
+
+  // --- Legtöbbet fejlődött tantárgy (min. 4 jegy, kronologikus) ---
+  const subjectGrades = new Map<string, number[]>();
+  for (const g of grades) {
+    const name = subjectName(g);
+    const arr = subjectGrades.get(name) ?? [];
+    arr.push(Number(g.SzamErtek));
+    subjectGrades.set(name, arr);
+  }
+  const mostImproved =
+    [...subjectGrades.entries()]
+      .filter(([, values]) => values.length >= 4)
+      .map(([name, values]) => {
+        const half = Math.floor(values.length / 2);
+        const first = values.slice(0, half).reduce((a, b) => a + b, 0) / half;
+        const rest = values.length - half;
+        const second = values.slice(half).reduce((a, b) => a + b, 0) / rest;
+        return { name, delta: second - first, first, second };
+      })
+      .sort((a, b) => b.delta - a.delta)[0] ?? null;
+
+  // --- Legnehezebb tantárgy (legalacsonyabb súlyozott átlag, min. 3 jegy) ---
+  const hardestSubject =
+    ranking
+      .filter((s) => s.count >= 3)
+      .sort((a, b) => a.average - b.average)[0] ?? null;
+
+  // --- Konzisztencia (100 = nulla szórás) ---
+  const mean = average ?? 0;
+  const variance = grades.length
+    ? grades.reduce((sum, g) => sum + (Number(g.SzamErtek) - mean) ** 2, 0) /
+      grades.length
+    : 0;
+  const stddev = Math.sqrt(variance);
+  const consistency = grades.length
+    ? Math.max(0, Math.min(100, Math.round((1 - stddev / 2) * 100)))
+    : 0;
+
+  // --- Domináns értékelési mód ---
+  const modeEntries = (Object.entries(modes) as [keyof typeof modes, number][])
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const dominantMode = modeEntries[0]?.[0] ?? null;
+  const dominantModePercent =
+    dominantMode && grades.length
+      ? Math.round((modes[dominantMode] / grades.length) * 100)
+      : 0;
+
+  // --- Momentum (utolsó 5 jegy átlaga) ---
+  const recentFive = grades.length >= 5 ? grades.slice(-5) : null;
+  const recentFiveAvg = recentFive
+    ? recentFive.reduce((sum, g) => sum + Number(g.SzamErtek), 0) / 5
+    : null;
+  const recentFiveDelta =
+    recentFiveAvg !== null && average !== null ? recentFiveAvg - average : null;
+
+  // --- Átlagos jegy / hónap ---
+  const avgPerMonth = monthBreakdown.length
+    ? grades.length / monthBreakdown.length
+    : null;
+
   return {
     grades,
     total: grades.length,
@@ -174,6 +328,28 @@ export function makeStats(data: RecapData) {
     fivePercent: grades.length
       ? Math.round((counts[4] / grades.length) * 100)
       : 0,
+
+    // ═══ ÚJ ═══
+    subjectCount: subjects.size,
+    topSubjects: ranking.slice(0, 3),
+    monthBreakdown,
+    bestMonth,
+    worstMonth,
+    weekdayCounts,
+    busiestWeekday,
+    mostGradesDay,
+    bestDay,
+    mostFivesDay,
+    mostFivesSubject,
+    perfectSubjects,
+    mostImproved,
+    hardestSubject,
+    consistency,
+    dominantMode,
+    dominantModePercent,
+    recentFiveAvg,
+    recentFiveDelta,
+    avgPerMonth,
   };
 }
 export type Stats = ReturnType<typeof makeStats>;

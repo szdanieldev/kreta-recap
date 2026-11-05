@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRecapHandler } from './handler.ts';
 import { ApiError } from './api.ts';
 const url = 'https://recap-preview.vercel.app/api/recap';
-const credentials = { institute: 'school', username: ' student ', password: 'test-password-secret' };
+const credentials = { institute: 'school', username: ' student ', password: 'test-password-secret', consent: true };
 function request(body: unknown = credentials, headers: Record<string,string> = {}) { return new Request(url, { method: 'POST', headers: { 'Content-Type': 'application/json', origin: new URL(url).origin, ...headers }, body: JSON.stringify(body) }); }
 test('single stateless request authenticates and returns recap without cookies or token disclosure', async () => {
   const calls: string[] = [];
@@ -28,8 +28,15 @@ test('validates origin, JSON, body size, input and HTTP method before contacting
   assert.equal((await handler(request({ ...credentials, password:'x'.repeat(9000) }))).status, 413);
   assert.equal((await handler(new Request(url, {method:'POST',headers:{'content-type':'application/json'},body:'{bad'}))).status,400);
 });
-test('preserves detailed failures while redacting known secrets', async () => {
+test('never returns raw authentication failures, stack traces or credentials', async () => {
   const handler = createRecapHandler({ async login() { throw new ApiError(400, 'Login failed', { password: credentials.password, error: 'invalid_grant' }); }, async collectRecap() { throw new Error('Must not call recap'); } });
   const response = await handler(request()); assert.equal(response.status,400);
-  const text = await response.text(); assert.ok(!text.includes(credentials.password)); assert.match(text,/invalid_grant/); assert.match(text,/ApiError/); assert.match(text,/REDACTED/);
+  const text = await response.text(); assert.ok(!text.includes(credentials.password)); assert.ok(!text.includes('invalid_grant')); assert.ok(!text.includes('ApiError')); assert.ok(!text.includes('debug')); assert.ok(!text.includes('stack'));
+});
+
+test('requires explicit consent before transmitting credentials', async () => {
+  let called = false;
+  const handler = createRecapHandler({ async login() { called = true; return { access_token: 'x' }; }, async collectRecap() { return {}; } });
+  const response = await handler(request({ ...credentials, consent: false }));
+  assert.equal(response.status, 400); assert.equal(called, false);
 });

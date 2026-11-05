@@ -67,7 +67,7 @@ test('PKCE rejects an unexpected state before exchanging the code', async () => 
   finally { transport.fetch = original; }
 });
 
-test('debug preserves upstream error details and redacts credentials', async () => {
+test('upstream failures do not record personal data in traces', async () => {
   const { debugContext } = await import('./debug.ts');
   const { upstream, ApiError } = await import('./api.ts');
   const original = transport.fetch;
@@ -81,8 +81,7 @@ test('debug preserves upstream error details and redacts credentials', async () 
         return true;
       });
       const log = JSON.stringify(debugContext.getStore()?.entries);
-      assert.match(log, /invalid_grant/);
-      assert.match(log, /REDACTED/);
+      assert.equal(log, '[]');
       assert.ok(!log.includes('test-secret'));
       assert.ok(!log.includes('private-token'));
     });

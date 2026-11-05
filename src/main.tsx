@@ -7,34 +7,162 @@ import {
   type RecapData,
   type Stats,
 } from "./stats";
-import { demoData } from "./demo";
+import { InstitutionSearch, type Institution } from "./InstitutionSearch";
+import { getRank } from "./rank";
+import { PrivacyNotice } from "./privacy";
 import { createStory, downloadStory } from "./share";
 import "@fontsource-variable/space-grotesk";
 import "@fontsource-variable/dm-sans";
 import "./style.css";
-const TOTAL_SLIDES = 9;
-const Arrow = ({ back = false }: { back?: boolean }) => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d={back ? "M19 12H5m6 6-6-6 6-6" : "M5 12h14m-6-6 6 6-6 6"}
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+import "./brand.css";
+
+const TOTAL_SLIDES = 15;
+const THEMES = [
+  "ink",
+  "mint",
+  "paper",
+  "ink",
+  "mint",
+  "paper",
+  "ink",
+  "mint",
+  "paper",
+  "ink",
+  "mint",
+  "paper",
+  "ink",
+  "mint",
+  "paper",
+];
+
+const shortDate = (iso: string) => {
+  const [, , d] = iso.split("-");
+  return `${Number(d)}. ${monthName(iso.slice(0, 7))}`;
+};
+
+/* ─────────── ICONS ─────────── */
+const Svg = ({
+  children,
+  fill = false,
+  w = 24,
+}: {
+  children: React.ReactNode;
+  fill?: boolean;
+  w?: number;
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={w}
+    height={w}
+    fill={fill ? "currentColor" : "none"}
+    stroke={fill ? "none" : "currentColor"}
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {children}
   </svg>
+);
+const Arrow = ({ back = false }: { back?: boolean }) => (
+  <Svg>
+    <path d={back ? "M19 12H5m6 6-6-6 6-6" : "M5 12h14m-6-6 6 6-6 6"} />
+  </Svg>
 );
 const ShareIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d="M12 16V3m-5 5 5-5 5 5M5 13v7h14v-7"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
+  <Svg>
+    <path d="M12 16V3m-5 5 5-5 5 5M5 13v7h14v-7" />
+  </Svg>
 );
+const IconPause = () => (
+  <Svg fill>
+    <rect x="6" y="5" width="4" height="14" rx="1.5" />
+    <rect x="14" y="5" width="4" height="14" rx="1.5" />
+  </Svg>
+);
+const IconPlay = () => (
+  <Svg fill>
+    <path d="M8 5.5v13a1 1 0 0 0 1.54.84l10-6.5a1 1 0 0 0 0-1.68l-10-6.5A1 1 0 0 0 8 5.5z" />
+  </Svg>
+);
+const IconClose = () => (
+  <Svg>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </Svg>
+);
+const IconBook = () => (
+  <Svg>
+    <path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2V5z" />
+    <path d="M8 3v18" />
+  </Svg>
+);
+const IconChart = () => (
+  <Svg>
+    <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
+  </Svg>
+);
+const IconTrophy = () => (
+  <Svg>
+    <path d="M8 21h8M12 17v4" />
+    <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
+    <path d="M17 5h3a2 2 0 0 1-2 4h-1M7 5H4a2 2 0 0 0 2 4h1" />
+  </Svg>
+);
+const IconCalendar = () => (
+  <Svg>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M8 3v4M16 3v4M3 10h18" />
+  </Svg>
+);
+const IconHome = () => (
+  <Svg>
+    <path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z" />
+    <path d="M9 21v-7h6v7" />
+  </Svg>
+);
+const IconTrend = () => (
+  <Svg>
+    <path d="m3 17 6-6 4 4 8-8" />
+    <path d="M15 7h6v6" />
+  </Svg>
+);
+const IconPen = () => (
+  <Svg>
+    <path d="m16 3 5 5L8 21H3v-5L16 3z" />
+  </Svg>
+);
+const IconMic = () => (
+  <Svg>
+    <rect x="9" y="3" width="6" height="12" rx="3" />
+    <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" />
+  </Svg>
+);
+const IconDots = () => (
+  <Svg fill>
+    <circle cx="6" cy="12" r="1.6" />
+    <circle cx="12" cy="12" r="1.6" />
+    <circle cx="18" cy="12" r="1.6" />
+  </Svg>
+);
+const IconStar = () => (
+  <Svg>
+    <path d="m12 3 2.9 5.9L21 10l-4.5 4.4 1.1 6.2L12 17.5 6.4 20.6l1.1-6.2L3 10l6.1-1.1z" />
+  </Svg>
+);
+const IconFlame = () => (
+  <Svg>
+    <path d="M12 22c4 0 6-2.7 6-6 0-2.5-1.5-5-3-6.5 0 2-1 3-2 3s-1.5-1-1.5-3c0-2-1.5-4-3.5-5.5.5 2-1 4-1.5 5.5C5.5 12 5 13.5 5 15c0 3.5 2.5 7 7 7z" />
+  </Svg>
+);
+const IconTarget = () => (
+  <Svg>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+  </Svg>
+);
+
+/* ─────────── HELPERS ─────────── */
 function useReducedMotion() {
   const [reduced, setReduced] = useState(
     () => matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -47,6 +175,7 @@ function useReducedMotion() {
   }, []);
   return reduced;
 }
+
 function Count({
   value,
   className = "",
@@ -77,6 +206,7 @@ function Count({
     </span>
   );
 }
+
 function Spark() {
   return (
     <svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
@@ -84,20 +214,14 @@ function Spark() {
     </svg>
   );
 }
+
 function Sculpture({ small = false }: { small?: boolean }) {
   return (
     <div className={`sculpture ${small ? "small" : ""}`} aria-hidden="true">
       <div className="orbit orbit-one" />
       <div className="orbit orbit-two" />
       <div className="orbit orbit-three" />
-      <div className="sculpture-core">
-        5
-        <span>
-          egy jó sztori
-          <br />
-          itt kezdődik.
-        </span>
-      </div>
+      <div className="sculpture-core">5</div>
       <span className="floating-mark m1">
         <Spark />
       </span>
@@ -106,14 +230,16 @@ function Sculpture({ small = false }: { small?: boolean }) {
     </div>
   );
 }
+
 function Brand() {
   return (
     <span className="wordmark">
-      kréta<span>recap</span>
-      <i />
+      jegyem<span className="brand-dot">.</span>
     </span>
   );
 }
+
+/* ─────────── SLIDES ─────────── */
 function StoryContent({
   index,
   stats: s,
@@ -123,67 +249,59 @@ function StoryContent({
   stats: Stats;
   data: RecapData;
 }) {
-  const firstName =
-    typeof data.student?.Nev === "string"
-      ? data.student.Nev.trim().split(/\s+/).slice(-1)[0]
-      : "";
   const partial = data.coverage.grades !== "complete";
+  const weekdayLabels = ["H", "K", "Sze", "Cs", "P", "Szo", "V"];
+
+  /* 0 ─ intro */
   if (index === 0)
     return (
       <>
-        <div className="slide-kicker">01 / NYOMOT HAGYTÁL</div>
         <h1>
-          {firstName ? `${firstName},` : "Szia,"}
-          <br />
-          ez a te
-          <br />
-          <em>ritmusod.</em>
+          Ez a<br />
+          tanéved.
         </h1>
         <Sculpture small />
-        <div className="slide-bottom">
-          <p>
-            Egy tanév. Rengeteg pillanat.
-            <br />
-            Nézzük, mi lett belőlük.
-          </p>
-          <span className="fine">
-            {data.period.label} · SZEPTEMBERTŐL MOSTANÁIG
-          </span>
-        </div>
+        <p className="slide-bottom">Nézd végig.</p>
       </>
     );
+
+  /* 1 ─ total + subjects */
   if (index === 1)
     return (
       <>
-        <div className="slide-kicker">02 / A NAGY SZÁM</div>
+        <span className="slide-mark">
+          <IconBook />
+        </span>
         <h1>
-          Ennyiszer
+          Ennyi
           <br />
-          kerültél a<br />
-          <em>naplóba.</em>
+          történet.
         </h1>
         <div className="hero-number">
           <Count value={s.total} />
-          <span>évközi jegy{partial ? " · részleges adatok" : ""}</span>
+          <span>
+            jegy{partial ? " · részleges" : ""} · {s.subjectCount} tantárgyból
+          </span>
         </div>
         <p className="slide-bottom">
           {s.total === 0
-            ? "Még üres a történet. Az első jeggyel indul."
-            : `${s.ranking.length} tantárgy. Egyetlen, megismételhetetlen tanéved.`}
+            ? "Még nincs jegyed idén."
+            : `Átlagosan ${s.avgPerMonth ? decimal(s.avgPerMonth) : "—"} jegy / hónap.`}
         </p>
-        <span className="ghost-symbol" aria-hidden="true">
-          ↗
-        </span>
       </>
     );
+
+  /* 2 ─ distribution */
   if (index === 2)
     return (
       <>
-        <div className="slide-kicker">03 / A JEGYEID PALETTÁJA</div>
+        <span className="slide-mark">
+          <IconChart />
+        </span>
         <h1>
-          Minden szám
+          Így oszlanak
           <br />
-          egy <em>sztori.</em>
+          meg.
         </h1>
         <div className="grade-bars">
           {s.counts.map((n, i) => (
@@ -191,7 +309,7 @@ function StoryContent({
               <span className="grade-label">
                 {i + 1}
                 <small>
-                  {["elégségtelen", "elégséges", "közepes", "jó", "jeles"][i]}
+                  {["elégtelen", "elégséges", "közepes", "jó", "jeles"][i]}
                 </small>
               </span>
               <span className="bar-track">
@@ -199,7 +317,7 @@ function StoryContent({
                   style={
                     {
                       "--bar": `${(n / Math.max(...s.counts, 1)) * 100}%`,
-                      "--delay": `${i * 85}ms`,
+                      "--delay": `${i * 80}ms`,
                     } as React.CSSProperties
                   }
                 />
@@ -213,149 +331,318 @@ function StoryContent({
             {s.fivePercent}
             <span>%</span>
           </div>
-          <p>
-            A jegyeid ekkora része lett ötös.
-            <br />
-            Mindegyik mögött ott voltál te.
-          </p>
+          <p>ötös az összes jegyedből.</p>
         </div>
       </>
     );
+
+  /* 3 ─ top subjects podium */
   if (index === 3)
     return (
       <>
-        <div className="slide-kicker">04 / AHOGY BIZONYÍTOTTÁL</div>
+        <span className="slide-mark">
+          <IconTrophy />
+        </span>
         <h1>
-          Papíron.
+          A három
           <br />
-          Szóban.
-          <br />
-          <em>Odarakva.</em>
+          kedvenced.
         </h1>
-        <div className="mode-grid">
-          <div>
-            <Count value={s.modes.written} />
-            <span>dolgozatjegy</span>
+        {s.topSubjects.length === 0 ? (
+          <p className="slide-bottom">Még nincs elég jegyed.</p>
+        ) : (
+          <div className="podium">
+            {s.topSubjects.map((subj, i) => (
+              <div key={subj.name} className={`podium-row podium-${i}`}>
+                <span className="podium-rank">{i + 1}</span>
+                <div className="podium-info">
+                  <span className="podium-name">{subj.name}</span>
+                  <span className="podium-meta">
+                    {subj.count} jegy · {decimal(subj.average)} átlag
+                  </span>
+                </div>
+                <span className="podium-score">
+                  {subj.fives}
+                  <small>ötös</small>
+                </span>
+              </div>
+            ))}
           </div>
-          <div>
-            <Count value={s.modes.oral} />
-            <span>feleletjegy</span>
-          </div>
-          <div>
-            <Count value={s.modes.homework} />
-            <span>
-              házi feladatra
-              <br />
-              kapott jegy
-            </span>
-          </div>
-          <div>
-            <Count value={s.modes.other} />
-            <span>
-              egyéb módon
-              <br />
-              szerzett jegy
-            </span>
-          </div>
-        </div>
-        <p className="slide-bottom fine">
-          A KRÉTA értékelési módjai alapján. A dolgozatok és felelések itt a
-          rájuk kapott jegyeket jelentik.
-        </p>
+        )}
+        <p className="slide-bottom fine">Súlyozott átlag szerint rendezve.</p>
       </>
     );
+
+  /* 4 ─ mode breakdown */
   if (index === 4)
     return (
       <>
-        <div className="slide-kicker">05 / A TE TEREPED</div>
+        <h1>
+          Hogyan
+          <br />
+          kaptad őket.
+        </h1>
+        <div className="mode-grid">
+          <div>
+            <IconPen />
+            <Count value={s.modes.written} />
+            <span>dolgozat</span>
+          </div>
+          <div>
+            <IconMic />
+            <Count value={s.modes.oral} />
+            <span>felelet</span>
+          </div>
+          <div>
+            <IconHome />
+            <Count value={s.modes.homework} />
+            <span>házi</span>
+          </div>
+          <div>
+            <IconDots />
+            <Count value={s.modes.other} />
+            <span>egyéb</span>
+          </div>
+        </div>
+        {s.dominantMode && (
+          <p className="slide-bottom">
+            Leginkább{" "}
+            <em>
+              {s.dominantMode === "written"
+                ? "dolgozatból"
+                : s.dominantMode === "oral"
+                  ? "feleletből"
+                  : s.dominantMode === "homework"
+                    ? "háziból"
+                    : "egyéb módon"}
+            </em>{" "}
+            kaptál jegyet — {s.dominantModePercent}%-ban.
+          </p>
+        )}
+      </>
+    );
+
+  /* 5 ─ best subject detailed */
+  if (index === 5)
+    return (
+      <>
+        <span className="slide-mark">
+          <IconTrophy />
+        </span>
         <h1>
           {s.best ? (
             <>
-              Ebben voltál
+              A legerősebb
               <br />
-              <em>elem­edben.</em>
+              tantárgyad.
             </>
           ) : (
             <>
-              Minden tárgy
+              Még
               <br />
-              egy új <em>esély.</em>
+              alakul.
             </>
           )}
         </h1>
         <div className="subject-feature">
-          <span className="star-emblem" aria-hidden="true">
+          <span className="star-emblem">
             <Spark />
           </span>
-          <h2>{s.best?.name ?? "Még alakul."}</h2>
+          <h2>{s.best?.name ?? "—"}</h2>
           <div className="subject-score">
             {decimal(s.best?.average ?? null)}
             <span>súlyozott átlag</span>
           </div>
         </div>
-        <div className="slide-bottom">
-          <p>
-            {s.best
-              ? `${s.best.count} jegy, közte ${s.best.fives} ötös. Ez már egy saját pálya.`
-              : "Legalább 3 jegy kell egy tantárgyból, hogy kiemeljük."}
-          </p>
-          <span className="fine">
-            A LEGJOBB SÚLYOZOTT ÁTLAG · MINIMUM 3 JEGY
-          </span>
-        </div>
+        <p className="slide-bottom">
+          {s.best
+            ? `${s.best.count} jegy · ${s.best.fives} ötös${s.perfectSubjects > 0 ? ` · ${s.perfectSubjects} tantárgy csupa ötös` : ""}`
+            : "Legalább 3 jegy kell."}
+        </p>
       </>
     );
-  if (index === 5)
+
+  /* 6 ─ month chart */
+  if (index === 6) {
+    const maxCount = Math.max(1, ...s.monthBreakdown.map((m) => m.count));
     return (
       <>
-        <div className="slide-kicker">06 / CSÚCSRA JÁRATVA</div>
+        <span className="slide-mark">
+          <IconCalendar />
+        </span>
         <h1>
-          {s.busiest ? (
+          Hónapról
+          <br />
+          hónapra.
+        </h1>
+        {s.monthBreakdown.length === 0 ? (
+          <p className="slide-bottom">Még nincs adat.</p>
+        ) : (
+          <div className="month-chart">
+            {s.monthBreakdown.map((m, i) => (
+              <div
+                key={m.month}
+                className={`month-col ${s.bestMonth?.month === m.month ? "best" : ""}`}
+              >
+                <span className="month-count">{m.count}</span>
+                <div
+                  className="month-bar"
+                  style={
+                    {
+                      "--h": `${(m.count / maxCount) * 100}%`,
+                      "--delay": `${i * 60}ms`,
+                    } as React.CSSProperties
+                  }
+                />
+                <span className="month-label">
+                  {monthName(m.month).slice(0, 3)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="slide-bottom">
+          {s.bestMonth && (
             <>
-              {monthName(s.busiest[0])}.<br />
-              <em>Teljes fordulat.</em>
-            </>
-          ) : (
-            <>
-              A ritmusod
-              <br />
-              <em>még alakul.</em>
+              <div className="big-inline">
+                {decimal(s.bestMonth.average)}
+                <span className="inline-unit">átlag</span>
+              </div>
+              <p>
+                <em>{monthName(s.bestMonth.month)}</em> volt a legjobb hónapod —{" "}
+                {s.bestMonth.count} jegy.
+              </p>
             </>
           )}
-        </h1>
-        <div className="rhythm-art" aria-hidden="true">
-          {Array.from({ length: 22 }, (_, i) => (
-            <span
-              key={i}
-              style={
-                {
-                  "--h": `${25 + Math.sin(i * 0.8) ** 2 * 65}%`,
-                  "--delay": `${i * 32}ms`,
-                } as React.CSSProperties
-              }
-            />
-          ))}
-        </div>
-        <div className="slide-bottom">
-          <div className="big-inline">
-            <Count value={s.busiest?.[1] ?? 0} />
-          </div>
-          <p>
-            {s.busiest
-              ? "jegy a legsűrűbb hónapodban."
-              : "jegy egyelőre. A történeted még csak most kezdődik."}
-          </p>
-          <span className="fine">A JEGYEK DÁTUMA ALAPJÁN</span>
         </div>
       </>
     );
-  if (index === 6)
+  }
+
+  /* 7 ─ daily records */
+  if (index === 7)
     return (
       <>
-        <div className="slide-kicker">07 / ÓRA UTÁN IS</div>
+        <h1>A rekordjaid.</h1>
+        <div className="records">
+          {s.mostGradesDay && (
+            <div className="record-card">
+              <span className="record-icon">
+                <IconFlame />
+              </span>
+              <div className="record-info">
+                <span className="record-label">Legtöbb jegy egy nap</span>
+                <span className="record-value">
+                  {s.mostGradesDay.count}
+                  <small> jegy</small>
+                </span>
+              </div>
+              <div className="record-date">
+                {shortDate(s.mostGradesDay.date)}
+              </div>
+            </div>
+          )}
+          {s.bestDay && (
+            <div className="record-card">
+              <span className="record-icon">
+                <IconTrophy />
+              </span>
+              <div className="record-info">
+                <span className="record-label">Legjobb napod</span>
+                <span className="record-value">
+                  {decimal(s.bestDay.average)}
+                  <small> átlag</small>
+                </span>
+              </div>
+              <div className="record-date">{shortDate(s.bestDay.date)}</div>
+            </div>
+          )}
+          {s.mostFivesDay && (
+            <div className="record-card">
+              <span className="record-icon">
+                <IconStar />
+              </span>
+              <div className="record-info">
+                <span className="record-label">Legtöbb ötös egy nap</span>
+                <span className="record-value">
+                  {s.mostFivesDay.fives}
+                  <small> ötös</small>
+                </span>
+              </div>
+              <div className="record-date">
+                {shortDate(s.mostFivesDay.date)}
+              </div>
+            </div>
+          )}
+        </div>
+      </>
+    );
+
+  /* 8 ─ weekday chart */
+  if (index === 8) {
+    const maxWeekday = Math.max(1, ...s.weekdayCounts);
+    return (
+      <>
+        <span className="slide-mark">
+          <IconCalendar />
+        </span>
         <h1>
-          Ami nem fért
-          <br />a <em>csengőig.</em>
+          Mikor
+          <br />
+          pörögtél.
+        </h1>
+        <div className="weekday-chart">
+          {s.weekdayCounts.map((count, i) => (
+            <div
+              key={i}
+              className={`weekday-col ${s.busiestWeekday?.day === i ? "peak" : ""}`}
+            >
+              <div
+                className="weekday-bar"
+                style={
+                  {
+                    "--h": `${(count / maxWeekday) * 100}%`,
+                    "--delay": `${i * 60}ms`,
+                  } as React.CSSProperties
+                }
+              />
+              <span>{weekdayLabels[i]}</span>
+            </div>
+          ))}
+        </div>
+        {s.busiestWeekday && (
+          <p className="slide-bottom">
+            <em>
+              {
+                [
+                  "hétfőn",
+                  "kedden",
+                  "szerdán",
+                  "csütörtökön",
+                  "pénteken",
+                  "szombaton",
+                  "vasárnap",
+                ][s.busiestWeekday.day]
+              }
+            </em>{" "}
+            kaptad a legtöbb jegyet — {s.busiestWeekday.count} darabot.
+          </p>
+        )}
+      </>
+    );
+  }
+
+  /* 9 ─ homework */
+  if (index === 9)
+    return (
+      <>
+        <span className="slide-mark">
+          <IconHome />
+        </span>
+        <h1>
+          Házi
+          <br />
+          feladatok.
         </h1>
         <div className="homework-art" aria-hidden="true">
           <span />
@@ -374,25 +661,24 @@ function StoryContent({
           </div>
           <p>
             {data.coverage.homeworks === "unavailable"
-              ? "A házi feladatokat most nem sikerült lekérni."
-              : `kiadott házi feladat${data.coverage.homeworks === "partial" ? " a sikeresen lekért időszakokban" : " a KRÉTA-ban"}.`}
+              ? "Most nem elérhető."
+              : "kiadott feladat."}
           </p>
-          <span className="fine">
-            KIADOTT FELADATOK · NEM A TELJESÍTÉS MÉRÉSE
-          </span>
         </div>
       </>
     );
-  if (index === 7)
+
+  /* 10 ─ average + streak + momentum */
+  if (index === 10)
     return (
       <>
-        <div className="slide-kicker">08 / AMI ÖSSZEÁLLT</div>
+        <span className="slide-mark">
+          <IconTrend />
+        </span>
         <h1>
-          Minden jegy
+          Az átlagod
           <br />
-          hozzátett
-          <br />
-          <em>valamit.</em>
+          és a sorozatod.
         </h1>
         <div className="average-number">
           {decimal(s.weightedAverage)}
@@ -402,32 +688,129 @@ function StoryContent({
           <b>{s.bestStreak}</b>
           <p>
             ötös egymás után
-            <br />
-            <span>a leghosszabb sorozatodban.</span>
+            <span>a leghosszabb sorozatod.</span>
           </p>
         </div>
+        {s.recentFiveDelta !== null && Math.abs(s.recentFiveDelta) >= 0.15 && (
+          <div className={`momentum ${s.recentFiveDelta > 0 ? "up" : "down"}`}>
+            <IconTrend />
+            <span>
+              Az utolsó 5 jegyed{" "}
+              <strong>{decimal(Math.abs(s.recentFiveDelta))}</strong>-tal{" "}
+              {s.recentFiveDelta > 0 ? "jobb" : "gyengébb"} az átlagodnál.
+            </span>
+          </div>
+        )}
+      </>
+    );
+
+  /* 11 ─ most improved + hardest */
+  if (index === 11)
+    return (
+      <>
+        <h1>A fejlődésed.</h1>
+        {s.mostImproved && s.mostImproved.delta > 0 ? (
+          <div className="improvement-card">
+            <span className="improvement-label">LEGTÖBBET FEJLŐDTÉL</span>
+            <h2>{s.mostImproved.name}</h2>
+            <div className="improvement-nums">
+              <span>{decimal(s.mostImproved.first)}</span>
+              <Arrow />
+              <span className="improvement-second">
+                {decimal(s.mostImproved.second)}
+              </span>
+            </div>
+            <span className="improvement-delta">
+              +{decimal(s.mostImproved.delta)}
+            </span>
+          </div>
+        ) : (
+          <div className="improvement-card empty">
+            <span className="improvement-label">MOMENTUM</span>
+            <p>Még nincs elég jegy a fejlődés kimutatásához.</p>
+          </div>
+        )}
+        {s.hardestSubject && (
+          <div className="hardest-card">
+            <span className="hardest-label">A LEGNEHEZEBB TÁRGYAD</span>
+            <span className="hardest-name">{s.hardestSubject.name}</span>
+            <span className="hardest-meta">
+              {decimal(s.hardestSubject.average)} átlag ·{" "}
+              {s.hardestSubject.count} jegy
+            </span>
+          </div>
+        )}
+      </>
+    );
+
+  /* 12 ─ consistency */
+  if (index === 12) {
+    const label =
+      s.consistency >= 80
+        ? "Kiszámítható"
+        : s.consistency >= 60
+          ? "Stabil"
+          : s.consistency >= 40
+            ? "Hullámzó"
+            : "Kiszámíthatatlan";
+    return (
+      <>
+        <span className="slide-mark">
+          <IconTarget />
+        </span>
+        <h1>
+          Mennyire
+          <br />
+          vagy stabil?
+        </h1>
+        <div className="consistency-score">
+          <Count value={s.consistency} />
+          <span>/ 100</span>
+        </div>
+        <p className="consistency-meta">
+          <span className="consistency-label">{label}</span>
+          ·&nbsp;minél magasabb, annál egyenletesebbek a jegyeid
+        </p>
         <p className="slide-bottom fine">
-          {s.trend !== null
-            ? `A jegyeid második felének egyszerű átlaga ${Math.abs(s.trend) < 0.005 ? "közel azonos az első felével" : `${decimal(Math.abs(s.trend))}-dal ${s.trend > 0 ? "magasabb" : "alacsonyabb"} az első felénél`}. `
-            : ""}
-          A súlyozott átlag az évközi tantárgyi jegyekből készül, a KRÉTA-ban
-          megadott súlyokkal.
+          {s.perfectSubjects > 0
+            ? `${s.perfectSubjects} tantárgyad csupa ötös.`
+            : "Nincs csupa ötös tantárgyad (még)."}
         </p>
       </>
     );
+  }
+
+  /* 13 ─ rank */
+  if (index === 13) {
+    const rank = getRank(s, data.coverage);
+    return (
+      <>
+        <div className={`rank-reveal rank-${rank.id}`}>
+          <div className="rank-halo" aria-hidden="true">
+            <Spark />
+          </div>
+          <h1 className="rank-title">{rank.title}</h1>
+          <p className="rank-line">{rank.line}</p>
+        </div>
+        <div className="rank-receipt">
+          {rank.reasons.map((reason) => (
+            <span key={reason}>{reason}</span>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  /* 14 ─ summary */
   return (
     <>
-      <div className="slide-kicker">09 / EZ MIND TE VOLTÁL</div>
-      <h1>
-        A te sztorid.
-        <br />
-        <em>Vidd tovább.</em>
-      </h1>
+      <h1>A kártyád.</h1>
       <div className="summary-ticket">
         <div className="ticket-top">
           <Brand />
           <span>{data.period.label}</span>
         </div>
+        <div className="ticket-rank">{getRank(s, data.coverage).title}</div>
         <div className="ticket-main">
           <strong>{s.total}</strong>
           <span>évközi jegy</span>
@@ -454,18 +837,16 @@ function StoryContent({
           </div>
         </div>
         <div className="ticket-footer">
-          {partial ? "RÉSZLEGES ADATOK" : "AZ ÉN SZTORIM. AZ ÉN TEMPÓM."}
+          {partial ? "RÉSZLEGES ADATOK" : "JEGYEM"}
           <span>↗</span>
         </div>
       </div>
-      <p className="slide-bottom">
-        Van, ami túl jó ahhoz,
-        <br />
-        hogy a naplóban maradjon.
-      </p>
+      <p className="slide-bottom">Vidd tovább.</p>
     </>
   );
 }
+
+/* ─────────── MODAL ─────────── */
 function Modal({
   children,
   title,
@@ -486,58 +867,116 @@ function Modal({
   return (
     <dialog
       ref={ref}
-      onCancel={(event) => {
-        event.preventDefault();
+      onCancel={(e) => {
+        e.preventDefault();
         onClose();
       }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
       }}
       aria-label={title}
     >
       <div className="modal-top">
         <span className="eyebrow">{title}</span>
         <button className="icon-button" aria-label="Bezárás" onClick={onClose}>
-          ×
+          <IconClose />
         </button>
       </div>
       {children}
     </dialog>
   );
 }
+
+/* ─────────── APP ─────────── */
 function App() {
-  const [data, setData] = useState<RecapData | null>(null),
-    [demo, setDemo] = useState(false);
-  const [index, setIndex] = useState(0),
-    [paused, setPaused] = useState(false),
-    [loginOpen, setLoginOpen] = useState(false);
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const [shareOpen, setShareOpen] = useState(false),
-    [shareBusy, setShareBusy] = useState(false),
-    [blob, setBlob] = useState<Blob | null>(null),
-    [imageUrl, setImageUrl] = useState(""),
-    [shareMessage, setShareMessage] = useState("");
-  const [logs, setLogs] = useState<unknown[]>([]),
-    [debugOpen, setDebugOpen] = useState(false),
-    [hidden, setHidden] = useState(document.hidden);
+  const [data, setData] = useState<RecapData | null>(null);
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(() =>
+    new URLSearchParams(location.search).has("adatkezeles"),
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [institution, setInstitution] = useState<Institution | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [blob, setBlob] = useState<Blob | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
+  const [hidden, setHidden] = useState(document.hidden);
   const reduced = useReducedMotion();
   const touch = useRef<{ x: number; y: number } | null>(null);
+  const request = useRef<AbortController | null>(null);
+  const lastActivity = useRef(Date.now());
+  const shareGeneration = useRef(0);
+
   const stats = useMemo(() => (data ? makeStats(data) : null), [data]);
-  const stopped = paused || shareOpen || debugOpen || hidden || reduced;
+  const rank = useMemo(
+    () => (stats && data ? getRank(stats, data.coverage) : null),
+    [stats, data],
+  );
+  const stopped = paused || shareOpen || privacyOpen || hidden || reduced;
+
+  function clearSession() {
+    request.current?.abort();
+    request.current = null;
+    shareGeneration.current++;
+    setData(null);
+    setBlob(null);
+    setImageUrl("");
+    setShareOpen(false);
+    setShareBusy(false);
+    setShareMessage("");
+    setIndex(0);
+    setPaused(false);
+    setLoginOpen(false);
+    setBusy(false);
+    setInstitution(null);
+    setConsent(false);
+    setError("");
+  }
+
   useEffect(() => {
-    const onChange = () => setHidden(document.hidden);
-    document.addEventListener("visibilitychange", onChange);
-    return () => document.removeEventListener("visibilitychange", onChange);
+    const visibility = () => setHidden(document.hidden);
+    const activity = () => {
+      lastActivity.current = Date.now();
+    };
+    const leave = () => clearSession();
+    const restored = (event: PageTransitionEvent) => {
+      if (event.persisted) clearSession();
+    };
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("pagehide", leave);
+    window.addEventListener("pageshow", restored);
+    window.addEventListener("pointerdown", activity, { passive: true });
+    window.addEventListener("keydown", activity);
+    window.addEventListener("input", activity);
+    const timer = setInterval(() => {
+      if (Date.now() - lastActivity.current > 15 * 60 * 1000) clearSession();
+    }, 10000);
+    return () => {
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("pagehide", leave);
+      window.removeEventListener("pageshow", restored);
+      window.removeEventListener("pointerdown", activity);
+      window.removeEventListener("keydown", activity);
+      window.removeEventListener("input", activity);
+      clearInterval(timer);
+      request.current?.abort();
+    };
   }, []);
+
   useEffect(() => {
     if (!data || stopped || index === TOTAL_SLIDES - 1) return;
     const timer = setTimeout(
       () => setIndex((i) => Math.min(i + 1, TOTAL_SLIDES - 1)),
-      11000,
+      10000,
     );
     return () => clearTimeout(timer);
   }, [index, data, stopped]);
+
   useEffect(() => {
     if (!blob) {
       setImageUrl("");
@@ -547,241 +986,201 @@ function App() {
     setImageUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [blob]);
-  function log(step: string, details?: unknown) {
-    setLogs((previous) =>
-      [...previous, { time: new Date().toISOString(), step, details }].slice(
-        -200,
-      ),
-    );
-  }
-  async function api<T>(path: string, body?: unknown): Promise<T> {
-    log("Böngésző → API", {
-      path,
-      body:
-        body && typeof body === "object"
-          ? {
-              ...body,
-              ...("password" in body ? { password: "[REDACTED]" } : {}),
-            }
-          : body,
-    });
-    const start = performance.now();
-    try {
-      const response = await fetch(
-        `/api/${path}`,
-        body === undefined
-          ? {}
-          : {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            },
-      );
-      const text = await response.text();
-      let json;
-      try {
-        json = JSON.parse(text);
-      } catch {
-        throw new Error(
-          `Az API nem JSON-t adott (HTTP ${response.status}). Ellenőrizd az alkalmazás API-naplóját.`,
-        );
-      }
-      if (Array.isArray(json.debug))
-        setLogs((previous) => [...previous, ...json.debug].slice(-200));
-      const { debug: _, ...payload } = json;
-      log("API → böngésző", {
-        status: response.status,
-        durationMs: Math.round(performance.now() - start),
-        body: payload,
-      });
-      if (!response.ok) {
-        throw new Error(json.error || `HTTP ${response.status}`);
-      }
-      return payload as T;
-    } catch (e) {
-      log("Kérés sikertelen", {
-        message: e instanceof Error ? e.message : String(e),
-        stack: e instanceof Error ? e.stack : undefined,
-      });
-      throw e;
-    }
-  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget, values = new FormData(form);
-    setBusy(true); setError("");
+    if (!institution || !consent) return;
+    const form = event.currentTarget;
+    const fields = new FormData(form);
+    const controller = new AbortController();
+    const passwordInput = form.elements.namedItem(
+      "password",
+    ) as HTMLInputElement;
+    request.current?.abort();
+    request.current = controller;
+    setBusy(true);
+    setError("");
     try {
-      const result = await api<RecapData>("recap", {
-        institute: String(values.get("institute")).trim().toLowerCase(),
-        username: String(values.get("username")).trim(),
-        password: values.get("password"),
+      const response = await fetch("/api/recap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          institute: institution.code,
+          username: String(fields.get("username")).trim(),
+          password: fields.get("password"),
+          consent: true,
+        }),
+        signal: controller.signal,
+        cache: "no-store",
       });
-      if (result.coverage.grades === "unavailable") throw new Error("A jegyeidet most nem sikerült lekérni. Próbáld újra; a részletek a debug naplóban vannak.");
-      form.reset(); setData(result); setDemo(false); setIndex(0); setPaused(false); setLoginOpen(false);
-    } catch (e) { setError(e instanceof Error ? e.message : "Nem sikerült a belépés."); }
-    finally { (form.elements.namedItem("password") as HTMLInputElement).value = ""; setBusy(false); }
+      const result = await response.json().catch(() => {
+        throw new Error("A kapcsolat megszakadt. Próbáld újra.");
+      });
+      if (!response.ok)
+        throw new Error(result.error || "Most nem sikerült lekérni.");
+      if (result.coverage?.grades === "unavailable")
+        throw new Error("A KRÉTA most nem adta vissza a jegyeidet.");
+      if (controller.signal.aborted) return;
+      form.reset();
+      setData(result);
+      setIndex(0);
+      setPaused(false);
+      setLoginOpen(false);
+      setInstitution(null);
+      setConsent(false);
+      lastActivity.current = Date.now();
+    } catch (e) {
+      if (!controller.signal.aborted)
+        setError(
+          e instanceof Error ? e.message : "Most nem sikerült a belépés.",
+        );
+    } finally {
+      passwordInput.value = "";
+      if (request.current === controller) {
+        request.current = null;
+        setBusy(false);
+      }
+    }
   }
-  function exit() { setData(null); setDemo(false); setIndex(0); setError(""); setLogs([]); }
+
   async function openShare() {
-    if (!stats || !data) return;
+    if (!stats || !data || !rank) return;
+    const generation = ++shareGeneration.current;
     setShareOpen(true);
     setShareBusy(true);
     setBlob(null);
     setShareMessage("");
     try {
-      setBlob(await createStory(stats, data, demo));
+      const next = await createStory(stats, data, rank);
+      if (generation === shareGeneration.current) setBlob(next);
     } catch (e) {
-      setShareMessage(
-        e instanceof Error ? e.message : "Nem sikerült a képkészítés.",
-      );
+      if (generation === shareGeneration.current)
+        setShareMessage(
+          e instanceof Error ? e.message : "Nem sikerült elkészíteni a képet.",
+        );
     } finally {
-      setShareBusy(false);
+      if (generation === shareGeneration.current) setShareBusy(false);
     }
   }
+
   async function share() {
     if (!blob) return;
-    const file = new File([blob], "kreta-recap-story.png", {
-      type: "image/png",
-    });
+    const generation = shareGeneration.current;
+    const file = new File([blob], "jegyem-story.png", { type: "image/png" });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({
-          files: [file],
-          title: "Az én KRÉTA Recap sztorim",
-        });
-        setShareMessage("A kép átadva a megosztófelületnek.");
+        await navigator.share({ files: [file], title: "Jegyem · a tanéved" });
+        if (generation === shareGeneration.current)
+          setShareMessage("Átadva a megosztófelületnek.");
       } catch (e) {
-        if (e instanceof Error && e.name === "AbortError") return;
-        setShareMessage("A megosztás nem sikerült. A képet le is töltheted.");
+        if (
+          !(e instanceof Error && e.name === "AbortError") &&
+          generation === shareGeneration.current
+        )
+          setShareMessage("A megosztás nem sikerült. Lementsz?");
       }
     } else {
       downloadStory(blob);
-      setShareMessage(
-        "A képet letöltöttük. Feltöltheted Instagram Storyba vagy más közösségi oldalra.",
-      );
+      setShareMessage("Kép mentve.");
     }
   }
+
   const go = (direction: number) =>
     setIndex((i) => Math.max(0, Math.min(TOTAL_SLIDES - 1, i + direction)));
+  const privacyLink = (
+    <a
+      href="?adatkezeles"
+      onClick={(e) => {
+        e.preventDefault();
+        setPrivacyOpen(true);
+      }}
+    >
+      Adatkezelés
+    </a>
+  );
+
   return (
     <>
       {!data ? (
         <main className="landing">
           <header className="landing-header">
             <Brand />
-            <span className="edition">A TE TANÉVED, ÚJRANÉZVE.</span>
           </header>
           <section className="landing-main">
             <div className="landing-copy">
               <div className="eyebrow">
-                <span className="live-dot" /> TANÉV RECAP /{" "}
-                {new Date().getMonth() < 8
-                  ? new Date().getFullYear() - 1
-                  : new Date().getFullYear()}
+                <span className="live-dot" />
+                ÉVKÖZI JEGYEIDBŐL
               </div>
               <h1>
-                A tanéved.
+                Melyik sulis
                 <br />
-                Más
-                <br />
-                <em>szemszögből.</em>
+                <em>karakter vagy?</em>
               </h1>
               <p>
-                A dolgozatok, az ötösök, a nagy hajrák.
-                <br />A naplód számai mögött ott a te sztorid.
+                A jegyeidből kiderül.
+                <br />
+                30 másodperc az egész.
               </p>
               <button
                 className="glow-button"
                 onClick={() => {
                   setError("");
                   setLoginOpen(true);
+                  lastActivity.current = Date.now();
                 }}
               >
-                Mutasd a sztorim <Arrow />
+                Mutasd a rangom <Arrow />
               </button>
-              <button
-                className="demo-button"
-                onClick={() => {
-                  setData(demoData());
-                  setDemo(true);
-                  setIndex(0);
-                  setPaused(false);
-                }}
-              >
-                Előbb belenézek <span>↗</span>
-              </button>
+              <span className="landing-reassurance">
+                Nem mentjük el az adataidat. Bezárás után eltűnnek.
+              </span>
             </div>
             <div className="landing-art">
               <Sculpture />
-              <div className="art-caption">
-                <span>NEM CSAK JEGYEK.</span>
-                <span>EMLÉKEK.</span>
-              </div>
             </div>
           </section>
           <footer className="landing-footer">
-            <span>SAJÁT TEMPÓ. SAJÁT TÖRTÉNET.</span>
-            <span>KRÉTA-ból. Neked.</span>
+            <span>Nem hivatalos KRÉTA-alkalmazás.</span>
+            {privacyLink}
           </footer>
         </main>
       ) : (
         <main
-          className={`experience theme-${["ink", "mint", "paper", "ink", "mint", "ink", "paper", "mint", "ink"][index]}`}
+          className={`experience theme-${THEMES[index]}`}
+          tabIndex={0}
+          aria-label="A saját tanévi összefoglalód"
           onKeyDown={(event) => {
-            if ((event.target as HTMLElement).closest("input, dialog, summary"))
-              return;
+            if ((event.target as HTMLElement).closest("input, dialog")) return;
             if (event.key === "ArrowRight") go(1);
             if (event.key === "ArrowLeft") go(-1);
           }}
-          tabIndex={0}
-          aria-label="A tanéved összefoglalója"
         >
-          <div className="desktop-aside" aria-hidden="true">
-            <span>
-              AZ ÉN SZTORIM.
-              <br />
-              AZ ÉN TEMPÓM.
-            </span>
-            <span className="aside-year">{data.period.label}</span>
-            <span>KRÉTA RECAP — {String(index + 1).padStart(2, "0")}</span>
-          </div>
           <div className="story-shell">
             <header className="story-header">
               <Brand />
               <div className="story-actions">
-                {demo && <span className="demo-badge">DEMÓ</span>}
                 <button
                   className="icon-button"
-                  onClick={() => setPaused((v) => !v)}
                   disabled={reduced}
+                  onClick={() => setPaused((v) => !v)}
                   aria-label={
-                    reduced
-                      ? "Csökkentett mozgás: kézi lapozás"
-                      : paused
-                        ? "Lejátszás folytatása"
-                        : "Szünet"
-                  }
-                  title={
-                    reduced
-                      ? "Csökkentett mozgás: kézi lapozás"
-                      : paused
-                        ? "Folytatás"
-                        : "Szünet"
+                    reduced ? "Kézi lapozás" : paused ? "Folytatás" : "Szünet"
                   }
                 >
-                  {paused || reduced ? "▷" : "Ⅱ"}
+                  {paused || reduced ? <IconPlay /> : <IconPause />}
                 </button>
                 <button
                   className="icon-button"
-                  onClick={exit}
-                  disabled={busy}
-                  aria-label={demo ? "Demó bezárása" : "Összefoglaló bezárása"}
+                  onClick={clearSession}
+                  aria-label="Bezárás"
                 >
-                  ×
+                  <IconClose />
                 </button>
               </div>
             </header>
-            <nav className="progress" aria-label="Összefoglaló oldalak">
+
+            <nav className="progress" aria-label="Sztorioldalak">
               {Array.from({ length: TOTAL_SLIDES }, (_, i) => (
                 <button
                   key={i}
@@ -796,29 +1195,27 @@ function App() {
                 </button>
               ))}
             </nav>
-            <div className="story-meta">
-              <span>{data.period.label} / EDDIG</span>
-              <span>{String(index + 1).padStart(2, "0")} — 09</span>
-            </div>
+
             {data.coverage.grades === "partial" && (
               <p className="coverage-note">
-                Néhány időszak hiányzik · részleges összefoglaló
+                Néhány időszak hiányzik. Ez részleges sztori.
               </p>
             )}
+
             <section
-              className={`slide slide-${index}`}
               key={index}
+              className={`slide slide-${index}`}
               aria-label={`${index + 1}. oldal`}
-              onTouchStart={(event) => {
+              onTouchStart={(e) => {
                 touch.current = {
-                  x: event.touches[0].clientX,
-                  y: event.touches[0].clientY,
+                  x: e.touches[0].clientX,
+                  y: e.touches[0].clientY,
                 };
               }}
-              onTouchEnd={(event) => {
+              onTouchEnd={(e) => {
                 if (!touch.current) return;
-                const dx = event.changedTouches[0].clientX - touch.current.x,
-                  dy = event.changedTouches[0].clientY - touch.current.y;
+                const dx = e.changedTouches[0].clientX - touch.current.x;
+                const dy = e.changedTouches[0].clientY - touch.current.y;
                 if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4)
                   go(dx < 0 ? 1 : -1);
                 touch.current = null;
@@ -826,6 +1223,7 @@ function App() {
             >
               <StoryContent index={index} stats={stats!} data={data} />
             </section>
+
             <div className="story-controls">
               <button
                 className="back-button"
@@ -837,85 +1235,40 @@ function App() {
               </button>
               {index === TOTAL_SLIDES - 1 ? (
                 <button className="glow-button" onClick={openShare}>
-                  Ez mehet sztoriba <ShareIcon />
+                  Megosztom <ShareIcon />
                 </button>
               ) : (
                 <button className="next-button" onClick={() => go(1)}>
-                  {index === 0 ? "Nézzük" : "Tovább"}
-                  <Arrow />
+                  {index === 0 ? "Kezdjük" : "Tovább"} <Arrow />
                 </button>
               )}
             </div>
+
             <div className="story-footnote">
-              {data.period.start.replaceAll("-", ".")} —{" "}
-              {data.period.end.replaceAll("-", ".")}
-              <span>CSÚSZTASS VAGY LAPOZZ →</span>
+              <span>
+                {data.period.start.replaceAll("-", ".")} –{" "}
+                {data.period.end.replaceAll("-", ".")}
+              </span>
+              {privacyLink}
             </div>
           </div>
         </main>
       )}
-      {error && !loginOpen && (
-        <div className="global-error" role="alert">
-          {error}
-        </div>
-      )}
-      <details
-        className="debug"
-        onToggle={(event) => setDebugOpen(event.currentTarget.open)}
-      >
-        <summary>
-          Fejlesztői napló <span>+</span>
-        </summary>
-        {debugOpen && (
-          <div>
-            <p>
-              Részletes API-napló és nyers adatok. A jelszavak és hitelesítési
-              titkok kitakarva.
-            </p>
-            <button onClick={() => setLogs([])}>Napló törlése</button>
-            <pre>{JSON.stringify(logs, null, 2)}</pre>
-            {data && (
-              <>
-                <h3>Adatok és számítás</h3>
-                <p>
-                  Évközi, 1–5 közötti tantárgyi jegyek; félévi, év végi,
-                  magatartás és szorgalom nélkül. A hiányzó súly 100%. Kihagyott
-                  értékelések: {stats?.excluded}.
-                </p>
-                <pre>{JSON.stringify({ stats, data }, null, 2)}</pre>
-              </>
-            )}
-          </div>
-        )}
-      </details>
+
       {loginOpen && (
-        <Modal
-          title="BELÉPÉS A SZTORIDBA"
-          onClose={() => {
-            if (!busy) setLoginOpen(false);
-          }}
-        >
+        <Modal title="BELÉPÉS" onClose={clearSession}>
           <h2>
-            Helló,
+            Lássuk
             <br />
-            <em>főszereplő.</em>
+            <em>a tanéved.</em>
           </h2>
-          <p>A saját KRÉTA-belépéseddel indulunk.</p>
+          <p>Válaszd ki az iskolád, a többi már a naplódban van.</p>
           <form onSubmit={submit}>
-            <label>
-              Intézménykód
-              <input
-                autoFocus
-                name="institute"
-                placeholder="pl. klik123456789"
-                required
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                disabled={busy}
-              />
-              <small>Az iskola címe az .e-kreta.hu előtt.</small>
-            </label>
+            <InstitutionSearch
+              value={institution}
+              onChange={setInstitution}
+              disabled={busy}
+            />
             <label>
               Felhasználónév
               <input
@@ -932,73 +1285,92 @@ function App() {
                 name="password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="A jelszavad"
+                placeholder="KRÉTA-jelszó"
                 required
                 disabled={busy}
               />
             </label>
-            <button className="glow-button" disabled={busy}>
-              {busy ? "Összerakjuk a sztorid…" : "Induljon a recap"}
+            <label className="consent">
+              <input
+                name="consent"
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                required
+                disabled={busy}
+              />
+              <span>
+                Hozzájárulok az átmeneti adatkezeléshez.{" "}
+                <button
+                  type="button"
+                  className="inline-link"
+                  onClick={() => setPrivacyOpen(true)}
+                >
+                  Tájékoztató
+                </button>
+              </span>
+            </label>
+            <button
+              className="glow-button"
+              disabled={busy || !institution || !consent}
+            >
+              {busy ? "Összerakjuk…" : "Mutasd a karakterem"}
               {busy ? <span className="spinner" /> : <Arrow />}
             </button>
           </form>
           {busy && (
             <p className="loading-hint" role="status">
-              A tanév adatait kisebb időszakokban kérjük le. Ez eltarthat egy
-              kicsit.
+              Közvetlenül a KRÉTA-ból kérjük le a tanévedet.
             </p>
           )}
           {error && (
-            <div className="form-error" role="alert">
-              <p>{error}</p>
-              <details>
-                <summary>Részletes hibanapló</summary>
-                <pre>{JSON.stringify(logs, null, 2)}</pre>
-              </details>
-            </div>
+            <p className="form-error" role="alert">
+              {error}
+            </p>
           )}
-          <p className="privacy">
-            A jelszavadat nem mentjük el. Az adataidból itt, a böngésződben
-            készül az összefoglaló. Nem hivatalos KRÉTA-alkalmazás.
-          </p>
         </Modal>
       )}
-      {shareOpen && (
-        <Modal title="A SZTORID, VITELRE" onClose={() => setShareOpen(false)}>
+
+      {shareOpen && data && rank && (
+        <Modal
+          title="MEGOSZTÁS"
+          onClose={() => {
+            shareGeneration.current++;
+            setShareOpen(false);
+            setBlob(null);
+            setShareBusy(false);
+            setShareMessage("");
+          }}
+        >
           <h2>
-            Ez a te
+            A kártyád.
             <br />
-            <em>lenyomatod.</em>
+            <em>Vidd tovább.</em>
           </h2>
           {shareBusy ? (
-            <p role="status">Elkészítjük a story-kártyád…</p>
+            <p role="status">Készül a kártyád…</p>
           ) : imageUrl ? (
             <img
               className="share-preview"
               src={imageUrl}
-              alt="A megosztható tanévi összefoglaló: jegyek, átlag, ötösök, dolgozatjegyek és feleletjegyek."
+              alt={`Megosztható kártya. Rang: ${rank.title}.`}
             />
           ) : null}
-          <p className="share-description">
-            1080 × 1920 · Story méret
-            <br />
-            Név, iskola és belépési adatok nélkül.
-            {demo ? " Ez egy DEMÓ-kártya." : ""}
-          </p>
+          <p className="share-description">Story méret</p>
           <button className="glow-button" disabled={!blob} onClick={share}>
             Megosztom <ShareIcon />
           </button>
           <button
-            className="demo-button"
+            className="text-button save-button"
             disabled={!blob}
             onClick={() => {
               if (blob) {
                 downloadStory(blob);
-                setShareMessage("PNG mentése elindítva.");
+                setShareMessage("Kép mentése elindítva.");
               }
             }}
           >
-            Kép mentése ↓
+            Inkább lementem ↓
           </button>
           {shareMessage && (
             <p className="share-description" role="status">
@@ -1007,9 +1379,16 @@ function App() {
           )}
         </Modal>
       )}
+
+      {privacyOpen && (
+        <Modal title="ADATKEZELÉS" onClose={() => setPrivacyOpen(false)}>
+          <PrivacyNotice />
+        </Modal>
+      )}
     </>
   );
 }
+
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

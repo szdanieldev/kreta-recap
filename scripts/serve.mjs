@@ -5,6 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { resolve, sep, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import handler from '../.api-build/api/recap.js';
+import institutionsHandler from '../.api-build/api/institutions.js';
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
@@ -17,7 +18,7 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url || '/', publicOrigin);
     if (url.pathname === '/healthz') { if (req.method !== 'GET' && req.method !== 'HEAD') { json(res, 405, { error: 'Method not allowed' }); return; } res.writeHead(200, { 'Content-Type': mime['.json'], 'Cache-Control': 'no-store' }); res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ ok: true })); return; }
     if (url.pathname.startsWith('/api/')) {
-      if (url.pathname !== '/api/recap') { json(res, 404, { error: 'Ismeretlen API végpont.' }); return; }
+      if (!['/api/recap', '/api/institutions'].includes(url.pathname)) { json(res, 404, { error: 'Ismeretlen API végpont.' }); return; }
       const chunks = []; let size = 0;
       for await (const chunk of req) { size += chunk.length; if (size > 8192) { json(res, 413, { error: 'Túl nagy kérés.' }); return; } chunks.push(chunk); }
       const headers = new Headers();
@@ -28,7 +29,7 @@ const server = createServer(async (req, res) => {
       const controller = new AbortController();
       res.on('close', () => { if (!res.writableEnded) controller.abort(); });
       const request = new Request(requestUrl, { method: req.method, headers, signal: controller.signal, ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: Buffer.concat(chunks) } : {}) });
-      const response = await handler.fetch(request);
+      const response = await (url.pathname === '/api/institutions' ? institutionsHandler : handler).fetch(request);
       res.writeHead(response.status, Object.fromEntries(response.headers)); res.end(Buffer.from(await response.arrayBuffer())); return;
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') { json(res, 405, { error: 'Method not allowed' }); return; }
@@ -41,7 +42,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'HEAD') { res.end(); return; }
     await pipeline(createReadStream(path), res);
   } catch (error) {
-    console.error('HTTP adapter error:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('HTTP request failed.');
     if (!res.headersSent) json(res, 500, { error: 'Az alkalmazás feldolgozási hibát jelzett.' }); else res.end();
   }
 });

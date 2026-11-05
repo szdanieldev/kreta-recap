@@ -6,6 +6,9 @@
   "functions": {
     "api/recap.ts": {
       "maxDuration": 300
+    },
+    "api/institutions.ts": {
+      "maxDuration": 30
     }
   },
   "regions": [

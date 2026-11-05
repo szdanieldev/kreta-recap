@@ -14,15 +14,15 @@ test('collects date windows, deduplicates API items and reports missing data wit
   const original = transport.fetch;
   transport.fetch = async input => {
     const url = new URL(String(input));
-    if (url.pathname.endsWith('TanuloAdatlap')) return Response.json({ Nev: 'Teszt Diák' });
+    assert.ok(!url.pathname.endsWith('TanuloAdatlap'), 'must not fetch private student profiles');
     if (url.pathname.endsWith('HaziFeladatok')) return Response.json({ error: 'unavailable' }, { status: 503 });
     assert.equal(url.searchParams.get('datumTol'), '2026-09-01');
     assert.equal(url.searchParams.get('datumIg'), '2026-09-05');
-    return Response.json([{ Uid: 'one' }, { Uid: 'one' }]);
+    return Response.json([{ Uid: 'one', Nev: 'Private Name', ErtekeloTanarNeve: 'Private Teacher', Tema: 'Private topic' }, { Uid: 'one' }]);
   };
   try {
     const result = await collectRecap('school', 'test-token', new Date('2026-09-05T12:00:00Z'));
-    assert.deepEqual(result.grades, [{ Uid: 'one' }]);
+    assert.equal((result.grades as unknown[]).length, 1); assert.ok(!JSON.stringify(result).includes('Private')); assert.ok(!('student' in result));
     assert.deepEqual(result.coverage, { grades: 'complete', homeworks: 'unavailable' });
     assert.equal((result.errors as unknown[]).length, 1);
   } finally { transport.fetch = original; }

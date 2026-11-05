@@ -15,11 +15,8 @@ export function redact(value: unknown): unknown {
 export function registerSecret(value: unknown) {
   if (typeof value === 'string' && value) debugContext.getStore()?.secrets.add(value);
 }
-export function trace(step: string, details?: unknown) {
-  const entry = { time: new Date().toISOString(), step, details: redact(details) };
-  debugContext.getStore()?.entries.push(entry);
-  console.debug('[KRÉTA debug]', JSON.stringify(entry));
-}
+// Deliberately no recording, console output, analytics or persistent logs.
+export function trace(_step: string, _details?: unknown) {}
 export function errorDetails(error: unknown): unknown {
   if (!(error instanceof Error)) return redact(error);
   return redact({ name: error.name, message: error.message, stack: error.stack, ...Object.fromEntries(['code', 'errno', 'syscall', 'address', 'port'].filter(key => key in error).map(key => [key === 'code' ? 'errorCode' : key, (error as unknown as Record<string, unknown>)[key]])), cause: error.cause ? errorDetails(error.cause) : undefined,

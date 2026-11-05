@@ -1,0 +1,2 @@
+# Jegyem — Adatkezelési tájékoztató
+

@@ -29,8 +29,8 @@ export async function upstream(url: string, init: RequestInit = {}): Promise<unk
     const oauth = data && typeof data === 'object' && 'error' in data ? String(data.error) : undefined;
     if (oauth === 'unauthorized_client' || oauth === 'invalid_client') throw new ApiError(400,
       `KRÉTA OAuth: ${oauth}. A szerver elutasította az alkalmazás kliensazonosítóját vagy a választott belépési módot. client_id=${clientId()}; grant_type=${init.body instanceof URLSearchParams ? init.body.get('grant_type') : 'ismeretlen'}. Ez nem igazolja, hogy a jelszó hibás.`, details);
-    if (oauth === 'invalid_grant') throw new ApiError(400, 'KRÉTA OAuth: invalid_grant. A szerver elutasította a belépési adatokat vagy a hitelesítést. A pontos KRÉTA-válasz a debug naplóban látható.', details);
-    if (oauth) throw new ApiError(400, `KRÉTA OAuth hiba: ${oauth}. A részletes szerverválasz a debug naplóban látható.`, details);
+    if (oauth === 'invalid_grant') throw new ApiError(400, 'KRÉTA OAuth: invalid_grant. A szerver elutasította a belépési adatokat vagy a hitelesítést.', details);
+    if (oauth) throw new ApiError(400, `KRÉTA OAuth hiba: ${oauth}.`, details);
     if (response.status === 401) throw new ApiError(401, 'A munkamenet lejárt. Jelentkezz be újra.', details);
     if (response.status === 400) throw new ApiError(400, 'A KRÉTA elutasította a kérést. Ellenőrizd az intézménykódot és a belépési adatokat.', details);
     throw new ApiError(502, `A KRÉTA szervere hibát jelzett (${response.status}).`, details);
@@ -112,7 +112,7 @@ export async function login(institute: string, username: string, password: strin
     }
     result = await request(target.href);
     if (result.errors.length) throw new ApiError(400, `KRÉTA hitelesítési hiba: ${result.errors.join('; ')}`, { errors: result.errors });
-    if (!result.location) throw new ApiError(400, 'A KRÉTA nem adott authorization code-ot. További belépési lépés, kétfaktoros azonosítás vagy beleegyezés lehet szükséges; ellenőrizd a debug naplót.', { path: target.pathname });
+    if (!result.location) throw new ApiError(400, 'A KRÉTA nem adott authorization code-ot. További belépési lépés, kétfaktoros azonosítás vagy beleegyezés lehet szükséges.', { path: target.pathname });
     next = result.location;
   }
   if (!code) throw new ApiError(502, 'Nem érkezett authorization code a KRÉTA szervertől.');

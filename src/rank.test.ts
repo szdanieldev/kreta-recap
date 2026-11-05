@@ -1,0 +1,8 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { makeStats, type RecapData, type RecordValue } from './stats.ts';
+import { getRank } from './rank.ts';
+function fixture(numbers:number[],extras:RecordValue={}):RecapData{return{grades:numbers.map((n,i)=>({Uid:String(i),SzamErtek:n,KeszitesDatuma:`2026-10-${String(i+1).padStart(2,'0')}T12:00:00Z`,Tantargy:{Nev:'Matematika'},Mod:{Leiras:'Órai munka'},...extras})),homeworks:[],period:{start:'2026-09-01',end:'2026-11-05',label:'2026/27'},coverage:{grades:'complete',homeworks:'complete'}};}
+test('ranks are deterministic and need enough complete data',()=>{let d=fixture([5,5,5]);assert.equal(getRank(makeStats(d),d.coverage).id,'loading');d=fixture(Array(12).fill(5));d.coverage.grades='partial';assert.equal(getRank(makeStats(d),d.coverage).id,'loading');d.coverage.grades='complete';const s=makeStats(d);assert.equal(getRank(s,d.coverage).title,'Stréber deluxe');assert.deepEqual(getRank(s,d.coverage),getRank(s,d.coverage));});
+test('low averages and a real upward trend lead to different playful ranks',()=>{let d=fixture([2,1,2,2,1,2,2,2]);assert.equal(getRank(makeStats(d),d.coverage).title,'Csak melegedni ültem be');d=fixture([2,2,2,2,4,4,4,5]);assert.equal(getRank(makeStats(d),d.coverage).id,'comeback');});
+test('oral rank needs actual good oral grades, not just an assigned homework count',()=>{const d=fixture([4,4,4,4,4,4,4,4],{Mod:{Leiras:'Szóbeli felelet'}});assert.equal(getRank(makeStats(d),d.coverage).id,'speaker');const s=makeStats(fixture([3,3,3,3,3,3,3,3]));s.homeworks=100;assert.notEqual(getRank(s,d.coverage).id,'homework');});
